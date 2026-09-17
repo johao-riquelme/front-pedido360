@@ -1,0 +1,302 @@
+<style>
+  /* ESTILOS DEL MODAL PERSONALIZADO */
+  .modal-backdrop-custom {
+    position: fixed;
+    top: 0; left: 0; width: 100vw; height: 100vh;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(4px);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 9999;
+  }
+  .modal-box-custom {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 28px 32px;
+    max-width: 450px;
+    width: 90%;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    animation: fadeIn 0.2s ease-out;
+  }
+  .modal-box-custom h3 {
+    font-size: 1.25rem; font-weight: 700; color: #1e293b; margin-bottom: 12px;
+  }
+  .modal-box-custom p {
+    font-size: 0.95rem; color: #64748b; line-height: 1.5; margin-bottom: 24px;
+  }
+  .modal-actions-custom {
+    display: flex; justify-content: center; gap: 12px;
+  }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+</style>
+
+<!-- MODAL FLOTANTE DE CONFIRMACIÓN / ALERTA -->
+<div *ngIf="showModal" class="modal-backdrop-custom">
+  <div class="modal-box-custom">
+    <h3>{{ modalTitle }}</h3>
+    <p>{{ modalMessage }}</p>
+    <div class="modal-actions-custom">
+      <button *ngIf="modalType === 'confirm'" class="btn-cancel" (click)="closeModal()">Cancelar</button>
+      <button *ngIf="modalType === 'confirm'" class="btn-delete" (click)="executeModalAction()">Continuar</button>
+      <button *ngIf="modalType === 'alert'" class="btn-primary" (click)="closeModal()">Entendido</button>
+    </div>
+  </div>
+</div>
+
+<!-- PANTALLA DE INICIO (Sin sesión) -->
+<div *ngIf="!isLoggedIn" class="login-wrapper">
+  <div class="login-card">
+    <div class="brand">
+      <h1>Pedidos 360</h1>
+      <p>Sistema de Gestión e Integración Microservicios</p>
+    </div>
+    <div class="login-body">
+      <p>Inicia sesión con tu cuenta corporativa de Azure AD para continuar.</p>
+      <button class="btn-primary-large" (click)="login()">Iniciar Sesión con Microsoft</button>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL PRINCIPAL (Con sesión) -->
+<div *ngIf="isLoggedIn" class="dashboard-container">
+  <header class="navbar">
+    <div class="brand-title">Pedidos 360</div>
+    <div class="user-info">
+      <span>Hola, <strong>{{ userName }}</strong> ({{ userRole }})</span>
+      <button class="btn-logout" (click)="logout()">Cerrar Sesión</button>
+    </div>
+  </header>
+
+  <!-- MENÚ DE NAVEGACIÓN PRINCIPAL -->
+  <nav class="sub-navbar">
+    <button [class.active]="activeTab === 'orders'" (click)="setTab('orders')">📦 Pedidos</button>
+    <button [class.active]="activeTab === 'catalog'" (click)="setTab('catalog')">🏷️ Catálogo</button>
+    <button [class.active]="activeTab === 'reports'" (click)="setTab('reports')">📊 Reportes & KPIs</button>
+    <button [class.active]="activeTab === 'audit'" (click)="setTab('audit')">🛡️ Auditoría</button>
+  </nav>
+
+  <main class="content">
+
+    <!-- TAB 1: GESTIÓN DE PEDIDOS -->
+    <section *ngIf="activeTab === 'orders'">
+      <div class="actions-header">
+        <h2>Listado de Pedidos</h2>
+        <button class="btn-primary" (click)="toggleCreateForm()">
+          {{ showCreateForm ? 'Cancelar' : '+ Nuevo Pedido' }}
+        </button>
+      </div>
+
+      <!-- FORMULARIO CREAR PEDIDO -->
+      <div *ngIf="showCreateForm" class="create-card">
+        <h3>Crear Nuevo Pedido</h3>
+        <div *ngIf="errorMessage" style="color: #dc2626; margin-bottom: 12px; font-weight: bold;">
+          ⚠️ {{ errorMessage }}
+        </div>
+        <div class="form-inline">
+          <input type="text" [(ngModel)]="newCliente" placeholder="Cliente / Empresa" />
+          
+          <select [(ngModel)]="selectedProductId" (change)="onProductSelect()" class="select-prod">
+            <option [ngValue]="null" disabled selected>-- Selecciona Producto --</option>
+            <option *ngFor="let p of products" [ngValue]="p.id">
+              {{ p.nombre }} (${{ p.precio }} | Stock: {{ p.stock }})
+            </option>
+          </select>
+
+          <input type="number" [(ngModel)]="selectedCantidad" (input)="onProductSelect()" placeholder="Cant." min="1" style="width: 80px;" />
+
+          <input type="number" [(ngModel)]="newMonto" placeholder="Monto Total ($)" readonly class="input-readonly" />
+
+          <button class="btn-success" (click)="createOrder()">Guardar Pedido</button>
+        </div>
+      </div>
+
+      <table class="orders-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Cliente</th>
+            <th>Producto Solicitado</th>
+            <th>Monto Total</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let order of orders">
+            <td>#{{ order.id }}</td>
+
+            <!-- CLIENTE -->
+            <td *ngIf="editingOrderId !== order.id">{{ order.cliente }}</td>
+            <td *ngIf="editingOrderId === order.id">
+              <input type="text" [(ngModel)]="editCliente" class="input-edit" />
+            </td>
+
+            <!-- PRODUCTO Y CANTIDAD -->
+            <td *ngIf="editingOrderId !== order.id">
+              <strong>{{ order.productoNombre || 'Producto General' }}</strong>
+              <small *ngIf="order.cantidad" style="display:block; color:#64748b;">Cant: {{ order.cantidad }} un.</small>
+            </td>
+            <td *ngIf="editingOrderId === order.id">
+              <select [(ngModel)]="editProductId" (change)="onEditProductOrCantidadChange()" class="select-prod input-edit" style="margin-bottom: 4px;">
+                <option *ngFor="let p of products" [ngValue]="p.id">
+                  {{ p.nombre }} (${{ p.precio }} | Stock: {{ p.stock }})
+                </option>
+              </select>
+              <input type="number" [(ngModel)]="editCantidad" (input)="onEditProductOrCantidadChange()" placeholder="Cant." min="1" style="width: 70px;" class="input-edit" />
+              <div *ngIf="editErrorMessage" style="color: #dc2626; font-size: 11px; font-weight: bold; margin-top: 2px;">
+                ⚠️ {{ editErrorMessage }}
+              </div>
+            </td>
+
+            <!-- MONTO TOTAL (READONLY AL EDITAR) -->
+            <td *ngIf="editingOrderId !== order.id">${{ order.monto }}</td>
+            <td *ngIf="editingOrderId === order.id">
+              <input type="number" [(ngModel)]="editMonto" readonly class="input-readonly input-edit" title="El monto se calcula automáticamente" />
+            </td>
+
+            <td>
+              <span class="badge" [ngClass]="order.estado.toLowerCase()">
+                {{ order.estado }}
+              </span>
+            </td>
+
+            <td class="actions-cell">
+              <ng-container *ngIf="editingOrderId !== order.id">
+                <button class="btn-edit" (click)="startEdit(order)">Editar</button>
+                <button *ngIf="order.estado !== 'ENTREGADO' && order.estado !== 'CANCELADO'" class="btn-status" (click)="advanceStatus(order)">
+                  {{ order.estado === 'CREADO' ? 'Aceptar Pedido' : 'Avanzar Estado' }}
+                </button>
+                <button *ngIf="order.estado !== 'ENTREGADO' && order.estado !== 'CANCELADO'" class="btn-cancel-order" (click)="cancelOrder(order)">Cancelar</button>
+                <button class="btn-delete" (click)="deleteOrder(order.id)">Eliminar</button>
+              </ng-container>
+
+              <ng-container *ngIf="editingOrderId === order.id">
+                <button class="btn-success" (click)="saveEdit(order)">Guardar</button>
+                <button class="btn-cancel" (click)="cancelEdit()">Cancelar</button>
+              </ng-container>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- TAB 2: CATÁLOGO DE PRODUCTOS -->
+    <section *ngIf="activeTab === 'catalog'">
+      <div class="actions-header">
+        <h2>Catálogo de Productos y Stock</h2>
+        <button class="btn-primary" (click)="toggleProdForm()">
+          {{ showProdForm ? 'Cancelar' : '+ Agregar Producto' }}
+        </button>
+      </div>
+
+      <!-- FORMULARIO NUEVO PRODUCTO CON CATEGORÍA -->
+      <div *ngIf="showProdForm" class="create-card">
+        <h3>Nuevo Producto</h3>
+        <div *ngIf="prodErrorMessage" style="color: #dc2626; margin-bottom: 12px; font-weight: bold;">
+          ⚠️ {{ prodErrorMessage }}
+        </div>
+        <div class="form-inline">
+          <input type="text" [(ngModel)]="newProdNombre" placeholder="Nombre Producto" />
+          <input type="text" [(ngModel)]="newProdCategoria" placeholder="Categoría (ej: Periféricos)" />
+          <input type="number" [(ngModel)]="newProdPrecio" placeholder="Precio ($)" />
+          <input type="number" [(ngModel)]="newProdStock" placeholder="Stock Inicial" />
+          <button class="btn-success" (click)="createProduct()">Guardar</button>
+        </div>
+      </div>
+
+      <table class="orders-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Producto</th>
+            <th>Categoría</th>
+            <th>Precio Unitario</th>
+            <th>Stock Disponible</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of products">
+            <!-- MODO VISTA PRODUCTO -->
+            <ng-container *ngIf="editingProductId !== p.id">
+              <td>#{{ p.id }}</td>
+              <td><strong>{{ p.nombre }}</strong></td>
+              <td>{{ p.categoria }}</td>
+              <td>${{ p.precio }}</td>
+              <td>
+                <span class="stock-tag" [class.low-stock]="p.stock < 15">{{ p.stock }} unidades</span>
+              </td>
+              <td class="actions-cell">
+                <button class="btn-edit" (click)="startEditProduct(p)">Editar</button>
+                <button class="btn-delete" (click)="deleteProduct(p.id)">Eliminar</button>
+              </td>
+            </ng-container>
+
+            <!-- MODO EDICIÓN PRODUCTO INLINE -->
+            <ng-container *ngIf="editingProductId === p.id">
+              <td>#{{ p.id }}</td>
+              <td><input type="text" [(ngModel)]="editProdNombre" class="input-edit" /></td>
+              <td><input type="text" [(ngModel)]="editProdCategoria" class="input-edit" /></td>
+              <td><input type="number" [(ngModel)]="editProdPrecio" class="input-edit" style="width: 90px;" /></td>
+              <td><input type="number" [(ngModel)]="editProdStock" class="input-edit" style="width: 80px;" /></td>
+              <td class="actions-cell">
+                <button class="btn-success" (click)="saveEditProduct(p)">Guardar</button>
+                <button class="btn-cancel" (click)="cancelEditProduct()">Cancelar</button>
+              </td>
+            </ng-container>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+
+    <!-- TAB 3: REPORTES & KPIS -->
+    <section *ngIf="activeTab === 'reports'">
+      <div class="actions-header">
+        <h2>Indicadores Clave (Kafka Analytics)</h2>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <h4>Ventas Totales</h4>
+          <p class="kpi-value">${{ getTotalSales() }}</p>
+          <span class="kpi-sub">Calculado en tiempo real</span>
+        </div>
+        <div class="kpi-card">
+          <h4>Pedidos Activos</h4>
+          <p class="kpi-value">{{ getActiveOrdersCount() }}</p>
+          <span class="kpi-sub">En proceso de atención</span>
+        </div>
+        <div class="kpi-card">
+          <h4>Lead Time Promedio</h4>
+          <p class="kpi-value">18.4 min</p>
+          <span class="kpi-sub">Tiempo Creación ➔ Entrega</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 4: AUDITORÍA -->
+    <section *ngIf="activeTab === 'audit'">
+      <div class="actions-header">
+        <h2>Auditoría de Eventos de Negocio</h2>
+      </div>
+
+      <div class="timeline">
+        <div class="timeline-item" *ngFor="let log of auditLogs">
+          <div class="timeline-badge"></div>
+          <div class="timeline-content">
+            <div class="timeline-header">
+              <strong class="event-name">{{ log.evento }}</strong>
+              <span class="event-time">{{ log.timestamp }}</span>
+            </div>
+            <p>{{ log.detalle }}</p>
+            <small>Ejecutado por: <em>{{ log.usuario }}</em></small>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+</div>
