@@ -5,7 +5,7 @@ export const msalConfig = {
   auth: {
     clientId: 'a17cda30-9d3b-4af4-8bfe-75e8ad13aa24',
     authority: 'https://login.microsoftonline.com/fd7c1051-f107-4307-a49d-b7901ba3e873',
-    redirectUri: typeof window !== 'undefined' ? window.location.origin : 'http://54.87.38.87/'
+    redirectUri: typeof window !== 'undefined' ? window.location.origin : 'https://35.172.182.199.sslip.io/'
   },
   cache: {
     cacheLocation: 'localStorage',
@@ -19,7 +19,7 @@ export const loginRequest = {
 
 export const protectedResources = {
   ordersApi: {
-    endpoint: 'http://localhost:8080/api/orders',
+    endpoint: '/api/orders', // Cambiado a ruta relativa para que MSAL inyecte el Token a través de Nginx
     scopes: ['api://a17cda30-9d3b-4af4-8bfe-75e8ad13aa24/Orders.Read']
   }
 };

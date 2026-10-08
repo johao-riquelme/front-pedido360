@@ -49,18 +49,10 @@ export class App implements OnInit {
   userRole = '';
   activeTab = 'orders';
 
-  // DATOS POR DEFECTO (Se usarán solo la primera vez)
-  products: Product[] = [
-    { id: 1, nombre: 'Teclado Mecánico RGB', precio: 45000, stock: 25, categoria: 'Periféricos' },
-    { id: 2, nombre: 'Monitor 27" 4K UltraHD', precio: 280000, stock: 12, categoria: 'Monitores' },
-    { id: 3, nombre: 'Mouse Inalámbrico Pro', precio: 32000, stock: 40, categoria: 'Periféricos' }
-  ];
+  // Productos cargados dinámicamente desde Neon DB
+  products: Product[] = [];
 
-  orders: ExtendedOrder[] = [
-    { id: 101, cliente: 'Empresa Alfa', monto: 225000, estado: 'ENTREGADO', fecha: '2026-03-01', productoId: 1, productoNombre: 'Teclado Mecánico RGB', cantidad: 5 },
-    { id: 102, cliente: 'Comercial Beta', monto: 96000, estado: 'EN_PREPARACIÓN', fecha: '2026-03-02', productoId: 3, productoNombre: 'Mouse Inalámbrico Pro', cantidad: 3 },
-    { id: 103, cliente: 'Distribuidora Gamma', monto: 280000, estado: 'CREADO', fecha: '2026-03-03', productoId: 2, productoNombre: 'Monitor 27" 4K UltraHD', cantidad: 1 }
-  ];
+  orders: ExtendedOrder[] = [];
 
   auditLogs: AuditLog[] = [
     { id: 1, evento: 'OrderCreated', usuario: 'johao.riquelme@empresa.com', timestamp: '2026-03-03 10:15:02', detalle: 'Pedido #103 creado por $280.000' },
@@ -105,10 +97,19 @@ export class App implements OnInit {
   modalType: 'confirm' | 'alert' = 'confirm';
   onModalConfirm: (() => void) | null = null;
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     if (!isPlatformBrowser(this.platformId)) return;
 
-    this.loadFromStorage(); // Cargar datos persistentes
+    try {
+      // Inicializar MSAL explícitamente antes de consultar cuentas o suscripciones
+      await this.msalService.instance.initialize();
+    } catch (e) {
+      console.warn('MSAL initialization warning:', e);
+    }
+
+    // Cargar desde Neon PostgreSQL a través de Spring Boot
+    this.loadOrders();
+    this.loadProducts();
 
     this.msalService.handleRedirectObservable().subscribe({
       next: (result: AuthenticationResult | null) => {
@@ -126,7 +127,34 @@ export class App implements OnInit {
       });
   }
 
-  // --- PERSISTENCIA LOCAL (LOCALSTORAGE) ---
+  loadOrders(): void {
+    this.ordersService.getOrders().subscribe({
+      next: (data) => {
+        this.orders = data.map(o => ({
+          ...o,
+          monto: o.monto ?? o.total ?? 0
+        }));
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error al obtener pedidos de Neon DB:', err);
+      }
+    });
+  }
+
+  loadProducts(): void {
+    this.ordersService.getProducts().subscribe({
+      next: (data) => {
+        this.products = data;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error al obtener productos de Neon DB:', err);
+      }
+    });
+  }
+
+  // --- PERSISTENCIA LOCAL ---
   loadFromStorage() {
     if (!isPlatformBrowser(this.platformId)) return;
     const p = localStorage.getItem('p360_products');
@@ -239,8 +267,7 @@ export class App implements OnInit {
 
     const calculatedMonto = prod.precio * this.selectedCantidad;
 
-    const newOrder: ExtendedOrder = {
-      id: this.orders.length + 101,
+    const newOrderPayload: ExtendedOrder = {
       cliente: this.newCliente.trim(),
       monto: calculatedMonto,
       estado: 'CREADO',
@@ -250,23 +277,36 @@ export class App implements OnInit {
       cantidad: this.selectedCantidad
     };
 
-    this.orders.push(newOrder);
+    // ENVÍO DE DATOS A NEON DB A TRAVÉS DE SPRING BOOT
+    this.ordersService.createOrder(newOrderPayload).subscribe({
+      next: (createdOrder) => {
+        this.orders.unshift({
+          ...createdOrder,
+          monto: createdOrder.monto ?? createdOrder.total ?? calculatedMonto,
+          productoNombre: prod.nombre,
+          cantidad: this.selectedCantidad
+        });
 
-    this.auditLogs.unshift({
-      id: this.auditLogs.length + 1,
-      evento: 'OrderCreated',
-      usuario: this.userName || 'Usuario',
-      timestamp: new Date().toLocaleString(),
-      detalle: `Pedido #${newOrder.id} creado para ${newOrder.cliente} (${this.selectedCantidad}x ${prod.nombre}) por $${calculatedMonto}`
+        this.auditLogs.unshift({
+          id: this.auditLogs.length + 1,
+          evento: 'OrderCreated',
+          usuario: this.userName || 'Usuario',
+          timestamp: new Date().toLocaleString(),
+          detalle: `Pedido #${createdOrder.id} creado para ${createdOrder.cliente} (${this.selectedCantidad}x ${prod.nombre}) por $${calculatedMonto}`
+        });
+
+        this.newCliente = '';
+        this.selectedProductId = null;
+        this.selectedCantidad = 1;
+        this.newMonto = null;
+        this.showCreateForm = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.errorMessage = 'Error al conectar con la base de datos en Neon.';
+        console.error(err);
+      }
     });
-
-    this.saveToStorage(); // Guardar cambios
-
-    this.newCliente = '';
-    this.selectedProductId = null;
-    this.selectedCantidad = 1;
-    this.newMonto = null;
-    this.showCreateForm = false;
   }
 
   advanceStatus(order: ExtendedOrder) {
@@ -313,7 +353,7 @@ export class App implements OnInit {
         detalle: `Pedido #${order.id} cambió de ${oldState} a ${order.estado}`
       });
 
-      this.saveToStorage(); // Guardar cambios
+      this.saveToStorage();
     }
   }
 
@@ -326,7 +366,7 @@ export class App implements OnInit {
       timestamp: new Date().toLocaleString(),
       detalle: `Pedido #${order.id} fue cancelado`
     });
-    this.saveToStorage(); // Guardar cambios
+    this.saveToStorage();
   }
 
   deleteOrder(id?: number) {
@@ -343,7 +383,7 @@ export class App implements OnInit {
           timestamp: new Date().toLocaleString(),
           detalle: `Pedido #${id} fue eliminado`
         });
-        this.saveToStorage(); // Guardar cambios
+        this.saveToStorage();
       }
     );
   }
@@ -414,7 +454,7 @@ export class App implements OnInit {
       detalle: `Pedido #${order.id} actualizado: ${order.cliente}, ${order.cantidad}x ${order.productoNombre || ''} ($${order.monto})`
     });
 
-    this.saveToStorage(); // Guardar cambios
+    this.saveToStorage();
   }
 
   // --- CATÁLOGO ---
@@ -459,7 +499,7 @@ export class App implements OnInit {
       detalle: `Producto '${this.newProdNombre.trim()}' agregado al catálogo`
     });
 
-    this.saveToStorage(); // Guardar cambios
+    this.saveToStorage();
 
     this.newProdNombre = '';
     this.newProdCategoria = '';
@@ -492,14 +532,13 @@ export class App implements OnInit {
 
     this.editingProductId = null;
 
-    this.saveToStorage(); // Guardar cambios
+    this.saveToStorage();
   }
 
   deleteProduct(id: number) {
     const prod = this.products.find(p => p.id === id);
     if (!prod) return;
 
-    // Verificar si tiene pedidos activos vinculados
     const hasActiveOrders = this.orders.some(
       o => Number(o.productoId) === Number(id) && o.estado !== 'ENTREGADO' && o.estado !== 'CANCELADO'
     );
@@ -524,7 +563,7 @@ export class App implements OnInit {
           timestamp: new Date().toLocaleString(),
           detalle: `Producto #${id} '${prod.nombre}' fue eliminado del catálogo`
         });
-        this.saveToStorage(); // Guardar cambios
+        this.saveToStorage();
       }
     );
   }
@@ -533,7 +572,7 @@ export class App implements OnInit {
   getTotalSales(): number {
     return this.orders
       .filter(o => o.estado !== 'CANCELADO')
-      .reduce((sum, o) => sum + o.monto, 0);
+      .reduce((sum, o) => sum + (o.monto || 0), 0);
   }
 
   getActiveOrdersCount(): number {
