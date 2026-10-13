@@ -70,8 +70,9 @@
     </div>
   </header>
 
-  <!-- MENÚ DE NAVEGACIÓN PRINCIPAL -->
-  <nav class="sub-navbar">
+  <!-- MENÚ DE NAVEGACIÓN PRINCIPAL (SOLO PARA ADMINS) -->
+  <nav class="sub-navbar" *ngIf="userRole === 'Admin'">
+    <button [class.active]="activeTab === 'store'" (click)="setTab('store')">🛒 Tienda Cliente</button>
     <button [class.active]="activeTab === 'orders'" (click)="setTab('orders')">📦 Pedidos</button>
     <button [class.active]="activeTab === 'catalog'" (click)="setTab('catalog')">🏷️ Catálogo</button>
     <button [class.active]="activeTab === 'reports'" (click)="setTab('reports')">📊 Reportes & KPIs</button>
@@ -80,8 +81,13 @@
 
   <main class="content">
 
-    <!-- TAB 1: GESTIÓN DE PEDIDOS -->
-    <section *ngIf="activeTab === 'orders'">
+    <!-- TAB 0: VISTA DE CLIENTE / TIENDA (DISPONIBLE PARA TODOS) -->
+    <section *ngIf="activeTab === 'store' || userRole !== 'Admin'">
+      <app-customer-view></app-customer-view>
+    </section>
+
+    <!-- TAB 1: GESTIÓN DE PEDIDOS (SOLO ADMIN) -->
+    <section *ngIf="activeTab === 'orders' && userRole === 'Admin'">
       <div class="actions-header">
         <h2>Listado de Pedidos</h2>
         <button class="btn-primary" (click)="toggleCreateForm()">
@@ -151,7 +157,7 @@
               </div>
             </td>
 
-            <!-- MONTO TOTAL (READONLY AL EDITAR) -->
+            <!-- MONTO TOTAL -->
             <td *ngIf="editingOrderId !== order.id">${{ order.monto }}</td>
             <td *ngIf="editingOrderId === order.id">
               <input type="number" [(ngModel)]="editMonto" readonly class="input-readonly input-edit" title="El monto se calcula automáticamente" />
@@ -183,8 +189,8 @@
       </table>
     </section>
 
-    <!-- TAB 2: CATÁLOGO DE PRODUCTOS -->
-    <section *ngIf="activeTab === 'catalog'">
+    <!-- TAB 2: CATÁLOGO DE PRODUCTOS (SOLO ADMIN) -->
+    <section *ngIf="activeTab === 'catalog' && userRole === 'Admin'">
       <div class="actions-header">
         <h2>Catálogo de Productos y Stock</h2>
         <button class="btn-primary" (click)="toggleProdForm()">
@@ -192,7 +198,7 @@
         </button>
       </div>
 
-      <!-- FORMULARIO NUEVO PRODUCTO CON CATEGORÍA -->
+      <!-- FORMULARIO NUEVO PRODUCTO -->
       <div *ngIf="showProdForm" class="create-card">
         <h3>Nuevo Producto</h3>
         <div *ngIf="prodErrorMessage" style="color: #dc2626; margin-bottom: 12px; font-weight: bold;">
@@ -220,7 +226,6 @@
         </thead>
         <tbody>
           <tr *ngFor="let p of products">
-            <!-- MODO VISTA PRODUCTO -->
             <ng-container *ngIf="editingProductId !== p.id">
               <td>#{{ p.id }}</td>
               <td><strong>{{ p.nombre }}</strong></td>
@@ -235,7 +240,6 @@
               </td>
             </ng-container>
 
-            <!-- MODO EDICIÓN PRODUCTO INLINE -->
             <ng-container *ngIf="editingProductId === p.id">
               <td>#{{ p.id }}</td>
               <td><input type="text" [(ngModel)]="editProdNombre" class="input-edit" /></td>
@@ -252,8 +256,8 @@
       </table>
     </section>
 
-    <!-- TAB 3: REPORTES & KPIS -->
-    <section *ngIf="activeTab === 'reports'">
+    <!-- TAB 3: REPORTES & KPIS (SOLO ADMIN) -->
+    <section *ngIf="activeTab === 'reports' && userRole === 'Admin'">
       <div class="actions-header">
         <h2>Indicadores Clave (Kafka Analytics)</h2>
       </div>
@@ -277,8 +281,8 @@
       </div>
     </section>
 
-    <!-- TAB 4: AUDITORÍA -->
-    <section *ngIf="activeTab === 'audit'">
+    <!-- TAB 4: AUDITORÍA (SOLO ADMIN) -->
+    <section *ngIf="activeTab === 'audit' && userRole === 'Admin'">
       <div class="actions-header">
         <h2>Auditoría de Eventos de Negocio</h2>
       </div>
@@ -291,8 +295,8 @@
               <strong class="event-name">{{ log.evento }}</strong>
               <span class="event-time">{{ log.timestamp }}</span>
             </div>
-            <p>{{ log.detalle }}</p>
-            <small>Ejecutado por: <em>{{ log.usuario }}</em></small>
+            <p class="event-detail">{{ log.detalle }}</p>
+            <span class="event-user">Ejecutado por: {{ log.usuario }}</span>
           </div>
         </div>
       </div>

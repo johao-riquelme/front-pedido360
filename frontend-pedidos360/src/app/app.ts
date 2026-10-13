@@ -7,6 +7,7 @@ import { filter } from 'rxjs/operators';
 import { loginRequest } from './auth-config';
 import { OrdersService } from './services/orders.service';
 import { Order } from './models/order.model';
+import { CustomerViewComponent } from './components/customer-view/customer-view';
 
 export interface Product {
   id: number;
@@ -33,7 +34,7 @@ export interface ExtendedOrder extends Order {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, CustomerViewComponent],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
@@ -46,12 +47,12 @@ export class App implements OnInit {
 
   isLoggedIn = false;
   userName = '';
-  userRole = '';
-  activeTab = 'orders';
+  // REGLA CRÍTICA: Por defecto SIEMPRE es Client
+  userRole: 'Admin' | 'Client' = 'Client';
+  activeTab = 'store';
 
   // Productos cargados dinámicamente desde Neon DB
   products: Product[] = [];
-
   orders: ExtendedOrder[] = [];
 
   auditLogs: AuditLog[] = [
@@ -101,13 +102,11 @@ export class App implements OnInit {
     if (!isPlatformBrowser(this.platformId)) return;
 
     try {
-      // Inicializar MSAL explícitamente antes de consultar cuentas o suscripciones
       await this.msalService.instance.initialize();
     } catch (e) {
       console.warn('MSAL initialization warning:', e);
     }
 
-    // Cargar desde Neon PostgreSQL a través de Spring Boot
     this.loadOrders();
     this.loadProducts();
 
@@ -154,40 +153,47 @@ export class App implements OnInit {
     });
   }
 
-  // --- PERSISTENCIA LOCAL ---
-  loadFromStorage() {
-    if (!isPlatformBrowser(this.platformId)) return;
-    const p = localStorage.getItem('p360_products');
-    const o = localStorage.getItem('p360_orders');
-    const a = localStorage.getItem('p360_audit');
-
-    if (p) this.products = JSON.parse(p);
-    if (o) this.orders = JSON.parse(o);
-    if (a) this.auditLogs = JSON.parse(a);
-  }
-
-  saveToStorage() {
-    if (!isPlatformBrowser(this.platformId)) return;
-    localStorage.setItem('p360_products', JSON.stringify(this.products));
-    localStorage.setItem('p360_orders', JSON.stringify(this.orders));
-    localStorage.setItem('p360_audit', JSON.stringify(this.auditLogs));
-  }
-
   checkAccount() {
     if (!isPlatformBrowser(this.platformId)) return;
 
-    const accounts = this.msalService.instance.getAllAccounts();
-    if (accounts.length > 0) {
-      const activeAccount = accounts[0];
+    const activeAccount = 
+      this.msalService.instance.getActiveAccount() || 
+      this.msalService.instance.getAllAccounts()[0];
+
+    if (activeAccount) {
       this.msalService.instance.setActiveAccount(activeAccount);
       this.isLoggedIn = true;
       this.userName = activeAccount.name || activeAccount.username;
 
       const claims = activeAccount.idTokenClaims as any;
-      this.userRole = claims?.roles ? claims.roles[0] : 'Admin';
+
+      // Unificamos la búsqueda del correo electrónico
+      const rawEmail = (
+        claims?.preferred_username || 
+        claims?.email || 
+        activeAccount.username || 
+        ''
+      ).toLowerCase().trim();
+
+      // REGLA ABSOLUTA Y ESTRICTA:
+      // SOLAMENTE si el correo es el tuyo (johao.riquelme / joh.riquelme) se otorga Admin.
+      // Cualquier otro correo (incluyendo emi.parra@duocuc.cl) SERÁ 'Client'.
+      if (rawEmail.includes('johao.riquelme') || rawEmail.includes('joh.riquelme')) {
+        this.userRole = 'Admin';
+      } else {
+        this.userRole = 'Client';
+        this.activeTab = 'store';
+      }
+
+      console.log('--- CONTROL DE ACCESO RBAC ---');
+      console.log('Usuario detectado:', rawEmail);
+      console.log('Rol final asignado:', this.userRole);
     } else {
       this.isLoggedIn = false;
+      this.userRole = 'Client';
+      this.activeTab = 'store';
     }
+
     this.cdr.detectChanges();
   }
 
@@ -195,7 +201,6 @@ export class App implements OnInit {
     this.activeTab = tab;
   }
 
-  // --- MODAL DE CONFIRMACIÓN ---
   openConfirmModal(title: string, message: string, action: () => void) {
     this.modalTitle = title;
     this.modalMessage = message;
@@ -224,7 +229,6 @@ export class App implements OnInit {
     this.closeModal();
   }
 
-  // --- PEDIDOS ---
   toggleCreateForm() {
     this.showCreateForm = !this.showCreateForm;
     this.errorMessage = '';
@@ -277,7 +281,6 @@ export class App implements OnInit {
       cantidad: this.selectedCantidad
     };
 
-    // ENVÍO DE DATOS A NEON DB A TRAVÉS DE SPRING BOOT
     this.ordersService.createOrder(newOrderPayload).subscribe({
       next: (createdOrder) => {
         this.orders.unshift({
@@ -334,14 +337,6 @@ export class App implements OnInit {
         if (prod) {
           const qty = order.cantidad || 1;
           prod.stock = Math.max(0, prod.stock - qty);
-
-          this.auditLogs.unshift({
-            id: this.auditLogs.length + 1,
-            evento: 'StockDecreased',
-            usuario: 'ms-pedidos360-catalog',
-            timestamp: new Date().toLocaleString(),
-            detalle: `Stock de '${prod.nombre}' reducido a ${prod.stock} unidades tras aceptar Pedido #${order.id}`
-          });
         }
       }
 
@@ -352,8 +347,6 @@ export class App implements OnInit {
         timestamp: new Date().toLocaleString(),
         detalle: `Pedido #${order.id} cambió de ${oldState} a ${order.estado}`
       });
-
-      this.saveToStorage();
     }
   }
 
@@ -366,7 +359,6 @@ export class App implements OnInit {
       timestamp: new Date().toLocaleString(),
       detalle: `Pedido #${order.id} fue cancelado`
     });
-    this.saveToStorage();
   }
 
   deleteOrder(id?: number) {
@@ -383,12 +375,10 @@ export class App implements OnInit {
           timestamp: new Date().toLocaleString(),
           detalle: `Pedido #${id} fue eliminado`
         });
-        this.saveToStorage();
       }
     );
   }
 
-  // --- EDICIÓN DE PEDIDOS ---
   startEdit(order: ExtendedOrder) {
     this.editingOrderId = order.id || null;
     this.editCliente = order.cliente;
@@ -445,19 +435,8 @@ export class App implements OnInit {
 
     this.editingOrderId = null;
     this.editErrorMessage = '';
-
-    this.auditLogs.unshift({
-      id: this.auditLogs.length + 1,
-      evento: 'OrderUpdated',
-      usuario: this.userName || 'Usuario',
-      timestamp: new Date().toLocaleString(),
-      detalle: `Pedido #${order.id} actualizado: ${order.cliente}, ${order.cantidad}x ${order.productoNombre || ''} ($${order.monto})`
-    });
-
-    this.saveToStorage();
   }
 
-  // --- CATÁLOGO ---
   toggleProdForm() {
     this.showProdForm = !this.showProdForm;
     this.prodErrorMessage = '';
@@ -491,16 +470,6 @@ export class App implements OnInit {
       categoria: categoria
     });
 
-    this.auditLogs.unshift({
-      id: this.auditLogs.length + 1,
-      evento: 'ProductCreated',
-      usuario: this.userName || 'Usuario',
-      timestamp: new Date().toLocaleString(),
-      detalle: `Producto '${this.newProdNombre.trim()}' agregado al catálogo`
-    });
-
-    this.saveToStorage();
-
     this.newProdNombre = '';
     this.newProdCategoria = '';
     this.newProdPrecio = null;
@@ -531,8 +500,6 @@ export class App implements OnInit {
     prod.stock = Number(this.editProdStock);
 
     this.editingProductId = null;
-
-    this.saveToStorage();
   }
 
   deleteProduct(id: number) {
@@ -556,19 +523,10 @@ export class App implements OnInit {
       `¿Está seguro de que desea eliminar el producto "${prod.nombre}" del catálogo?`,
       () => {
         this.products = this.products.filter(p => p.id !== id);
-        this.auditLogs.unshift({
-          id: this.auditLogs.length + 1,
-          evento: 'ProductDeleted',
-          usuario: this.userName || 'Usuario',
-          timestamp: new Date().toLocaleString(),
-          detalle: `Producto #${id} '${prod.nombre}' fue eliminado del catálogo`
-        });
-        this.saveToStorage();
       }
     );
   }
 
-  // --- REPORTES ---
   getTotalSales(): number {
     return this.orders
       .filter(o => o.estado !== 'CANCELADO')
