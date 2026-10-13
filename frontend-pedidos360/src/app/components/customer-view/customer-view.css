@@ -1,0 +1,94 @@
+/* Estilos globales para la vista cliente */
+.container {
+  max-width: 1200px;
+}
+
+/* Tarjetas de productos */
+.product-card {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  background-color: #ffffff;
+}
+
+.product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08) !important;
+}
+
+.product-card .card-title {
+  font-size: 1.05rem;
+}
+
+/* Badges */
+.badge {
+  font-size: 0.78rem;
+  padding: 0.4em 0.7em;
+  border-radius: 6px;
+}
+
+/* Botón agregar producto */
+.btn-add {
+  background-color: #2563eb;
+  border-color: #2563eb;
+  border-radius: 8px;
+  padding: 8px 12px;
+  transition: background-color 0.2s ease;
+}
+
+.btn-add:hover:not(:disabled) {
+  background-color: #1d4ed8;
+  border-color: #1d4ed8;
+}
+
+.btn-add:disabled {
+  background-color: #94a3b8;
+  border-color: #94a3b8;
+}
+
+/* Carrito Lateral Sticky */
+.cart-sidebar {
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px;
+  overflow: hidden;
+  z-index: 10;
+}
+
+.cart-sidebar .card-header {
+  border-bottom: 1px solid #334155;
+}
+
+.cart-list {
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.cart-list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.cart-list::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+/* Botón Webpay */
+.btn-webpay {
+  background-color: #e60023;
+  border-color: #e60023;
+  border-radius: 10px;
+  padding: 12px;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.btn-webpay:hover:not(:disabled) {
+  background-color: #cc001f;
+  border-color: #cc001f;
+  transform: translateY(-1px);
+}
+
+.btn-webpay:disabled {
+  background-color: #fca5a5;
+  border-color: #fca5a5;
+  cursor: not-allowed;
+}
