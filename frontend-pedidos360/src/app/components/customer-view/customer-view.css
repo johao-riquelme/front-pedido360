@@ -1,65 +1,114 @@
-/* Estilos globales para la vista cliente */
-.container {
-  max-width: 1200px;
+/* Importación de tipografía limpia si está disponible */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap');
+
+:host {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
-/* Tarjetas de productos */
+.fw-extrabold { font-weight: 800; }
+.fw-black { font-weight: 900; }
+
+/* HERO BANNER */
+.customer-hero {
+  background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-badge {
+  background: rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(4px);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+/* TARJETAS DE PRODUCTO */
 .product-card {
-  border: 1px solid #e2e8f0 !important;
-  border-radius: 12px;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid #f1f5f9 !important;
+  border-radius: 16px !important;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
   background-color: #ffffff;
 }
 
 .product-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.08) !important;
+  transform: translateY(-6px);
+  box-shadow: 0 12px 24px -4px rgba(15, 23, 42, 0.12) !important;
 }
 
-.product-card .card-title {
-  font-size: 1.05rem;
+.product-img-wrapper {
+  height: 120px;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
 }
 
-/* Badges */
-.badge {
-  font-size: 0.78rem;
-  padding: 0.4em 0.7em;
-  border-radius: 6px;
+.product-icon {
+  font-size: 3rem;
+  transition: transform 0.2s ease;
 }
 
-/* Botón agregar producto */
+.product-card:hover .product-icon {
+  transform: scale(1.1);
+}
+
+/* BADGES DE STOCK */
+.stock-available {
+  background-color: #10b981 !important;
+  color: #ffffff;
+  font-weight: 700;
+  padding: 0.4em 0.8em;
+  border-radius: 20px;
+  font-size: 0.72rem;
+}
+
+.stock-empty {
+  background-color: #ef4444 !important;
+  color: #ffffff;
+  font-weight: 700;
+  padding: 0.4em 0.8em;
+  border-radius: 20px;
+  font-size: 0.72rem;
+}
+
+/* BOTÓN AGREGAR */
 .btn-add {
-  background-color: #2563eb;
-  border-color: #2563eb;
-  border-radius: 8px;
-  padding: 8px 12px;
-  transition: background-color 0.2s ease;
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  border: none;
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
 }
 
 .btn-add:hover:not(:disabled) {
-  background-color: #1d4ed8;
-  border-color: #1d4ed8;
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
 .btn-add:disabled {
-  background-color: #94a3b8;
-  border-color: #94a3b8;
+  background: #cbd5e1;
+  color: #64748b;
+  cursor: not-allowed;
 }
 
-/* Carrito Lateral Sticky */
+/* CARRITO SIDEBAR */
 .cart-sidebar {
   border: 1px solid #e2e8f0 !important;
-  border-radius: 12px;
+  border-radius: 16px !important;
   overflow: hidden;
-  z-index: 10;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05) !important;
 }
 
 .cart-sidebar .card-header {
-  border-bottom: 1px solid #334155;
+  background-color: #0f172a !important;
+  border-bottom: 1px solid #1e293b;
 }
 
 .cart-list {
-  max-height: 280px;
+  max-height: 320px;
   overflow-y: auto;
 }
 
@@ -72,23 +121,37 @@
   border-radius: 4px;
 }
 
-/* Botón Webpay */
+.btn-delete-item {
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+}
+
+.btn-delete-item:hover {
+  background-color: #fee2e2;
+}
+
+/* BOTÓN WEBPAY TRANSBANK */
 .btn-webpay {
-  background-color: #e60023;
-  border-color: #e60023;
-  border-radius: 10px;
-  padding: 12px;
-  transition: background-color 0.2s ease, transform 0.1s ease;
+  background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+  border: none;
+  border-radius: 12px;
+  font-size: 1rem;
+  letter-spacing: 0.01em;
+  transition: all 0.2s ease;
 }
 
 .btn-webpay:hover:not(:disabled) {
-  background-color: #cc001f;
-  border-color: #cc001f;
+  background: linear-gradient(135deg, #b91c1c 0%, #991b1b 100%);
+  box-shadow: 0 6px 18px rgba(220, 38, 38, 0.35);
   transform: translateY(-1px);
 }
 
 .btn-webpay:disabled {
-  background-color: #fca5a5;
-  border-color: #fca5a5;
+  background: #fca5a5;
   cursor: not-allowed;
+  box-shadow: none;
 }

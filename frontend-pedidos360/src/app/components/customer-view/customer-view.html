@@ -1,32 +1,65 @@
 <div class="container my-4">
-  <h2 class="mb-4 text-dark fw-bold">🛍️ Catálogo de Productos</h2>
 
+  <!-- BANNER HEADER PRINCIPAL -->
+  <header class="customer-hero mb-4 p-4 rounded-4 shadow-sm text-white d-flex justify-content-between align-items-center">
+    <div>
+      <span class="hero-badge mb-2 d-inline-block">⚡ Tienda Oficial</span>
+      <h1 class="h2 fw-extrabold m-0">Catálogo de Productos</h1>
+      <p class="text-white-50 m-0 mt-1">Selecciona tus artículos y paga de forma rápida y segura con Webpay.</p>
+    </div>
+    <div class="hero-cart-summary d-none d-lg-flex align-items-center gap-2 bg-white text-dark px-3 py-2 rounded-3 shadow-sm">
+      <span class="fs-4">🛍️</span>
+      <div>
+        <small class="text-muted d-block lh-1">Tu Carrito</small>
+        <strong class="text-primary fs-6">{{ cart().length }} {{ cart().length === 1 ? 'producto' : 'productos' }}</strong>
+      </div>
+    </div>
+  </header>
+
+  <!-- MENSAJE DE ERROR -->
   @if (errorMessage()) {
-    <div class="alert alert-danger mb-3 shadow-sm rounded-3">{{ errorMessage() }}</div>
+    <div class="alert alert-danger mb-4 shadow-sm border-0 rounded-3 d-flex align-items-center gap-2">
+      <span class="fs-5">⚠️</span>
+      <div>{{ errorMessage() }}</div>
+    </div>
   }
 
   <div class="row g-4">
     <!-- Listado de Productos (Columna Izquierda) -->
-    <div class="col-md-8">
-      <div class="row row-cols-1 row-cols-md-3 g-3">
+    <div class="col-lg-8">
+      <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
         @for (product of products(); track product.id) {
           <div class="col">
-            <div class="card h-100 shadow-sm border-0 product-card">
+            <div class="card h-100 shadow-sm border-0 product-card position-relative overflow-hidden">
+              
+              <!-- Badge Stock Top Right -->
+              <div class="position-absolute top-0 end-0 m-3 z-1">
+                <span class="badge shadow-sm" [ngClass]="product.stock > 0 ? 'stock-available' : 'stock-empty'">
+                  {{ product.stock > 0 ? 'Stock: ' + product.stock : 'Agotado' }}
+                </span>
+              </div>
+
+              <!-- Icono Ilustrativo de Producto -->
+              <div class="product-img-wrapper d-flex align-items-center justify-content-center bg-light">
+                <span class="product-icon">📦</span>
+              </div>
+
               <div class="card-body d-flex flex-column p-3">
-                <h5 class="card-title fw-bold text-dark">{{ product.nombre }}</h5>
-                <p class="card-text text-muted mb-2">Precio: <span class="fw-bold text-primary">${{ product.precio | number:'1.0-0' }}</span></p>
-                <p class="card-text mb-3">
-                  <span class="badge" [ngClass]="product.stock > 0 ? 'bg-success' : 'bg-danger'">
-                    Stock: {{ product.stock }}
-                  </span>
-                </p>
+                <h5 class="card-title fw-bold text-dark mb-1 text-truncate">{{ product.nombre }}</h5>
+                
+                <div class="mt-2 mb-3">
+                  <small class="text-muted d-block">Precio unitario</small>
+                  <span class="fs-5 fw-extrabold text-primary">${{ product.precio | number:'1.0-0' }}</span>
+                </div>
+
                 <button 
-                  class="btn btn-primary mt-auto w-100 fw-semibold btn-add" 
+                  class="btn btn-primary mt-auto w-100 fw-semibold btn-add d-flex align-items-center justify-content-center gap-2" 
                   [disabled]="product.stock <= 0"
                   (click)="addToCart(product)">
-                  🛒 Agregar al Carrito
+                  <span>🛒</span> {{ product.stock > 0 ? 'Agregar al Carrito' : 'Sin Stock' }}
                 </button>
               </div>
+
             </div>
           </div>
         }
@@ -34,47 +67,57 @@
     </div>
 
     <!-- Carrito y Botón Webpay (Columna Derecha) -->
-    <div class="col-md-4">
+    <div class="col-lg-4">
       <div class="card shadow-sm border-0 sticky-top cart-sidebar" style="top: 20px;">
-        <div class="card-header bg-dark text-white py-3">
-          <h5 class="m-0 fw-bold">🛒 Resumen de Compra</h5>
+        <div class="card-header bg-dark text-white py-3 px-4 d-flex justify-content-between align-items-center">
+          <h5 class="m-0 fw-bold d-flex align-items-center gap-2">
+            <span>🛒</span> Resumen de Compra
+          </h5>
+          <span class="badge bg-secondary rounded-pill">{{ cart().length }}</span>
         </div>
-        <div class="card-body p-3">
+
+        <div class="card-body p-4">
           @if (cart().length === 0) {
-            <div class="text-center my-4 py-3 text-muted">
-              <div class="fs-1 mb-2">🛍️</div>
-              <p class="m-0 fw-semibold">El carrito está vacío</p>
-              <small>Selecciona productos para comenzar.</small>
+            <div class="text-center my-4 py-4 text-muted">
+              <div class="fs-1 mb-2 opacity-50">🛍️</div>
+              <p class="m-0 fw-bold text-dark fs-6">El carrito está vacío</p>
+              <small class="text-muted">Agrega productos del catálogo para comenzar tu compra.</small>
             </div>
           } @else {
             <ul class="list-group list-group-flush mb-3 cart-list">
               @for (item of cart(); track item.product.id) {
-                <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-2">
-                  <div>
-                    <strong class="text-dark">{{ item.product.nombre }}</strong>
-                    <div class="small text-muted">{{ item.quantity }} x ${{ item.product.precio | number:'1.0-0' }}</div>
+                <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-3 border-bottom-subtle">
+                  <div class="pe-2">
+                    <strong class="text-dark d-block lh-sm mb-1">{{ item.product.nombre }}</strong>
+                    <span class="badge bg-light text-secondary border">
+                      {{ item.quantity }} x ${{ item.product.precio | number:'1.0-0' }}
+                    </span>
                   </div>
-                  <div class="d-flex align-items-center">
-                    <span class="fw-bold me-2 text-dark">${{ (item.quantity * item.product.precio) | number:'1.0-0' }}</span>
-                    <button class="btn btn-sm btn-outline-danger border-0 rounded-circle px-2" (click)="removeFromCart(item.product.id)" title="Eliminar">🗑️</button>
+                  <div class="d-flex align-items-center gap-2">
+                    <span class="fw-bold text-dark fs-6">${{ (item.quantity * item.product.precio) | number:'1.0-0' }}</span>
+                    <button class="btn btn-sm btn-outline-danger btn-delete-item border-0 rounded-circle p-1" (click)="removeFromCart(item.product.id)" title="Eliminar ítem">
+                      🗑️
+                    </button>
                   </div>
                 </li>
               }
             </ul>
 
-            <div class="d-flex justify-content-between border-top pt-3 mb-3">
-              <span class="fs-5 fw-bold text-dark">Total:</span>
-              <span class="fs-4 fw-bold text-success">${{ totalAmount() | number:'1.0-0' }}</span>
+            <div class="bg-light p-3 rounded-3 mb-4">
+              <div class="d-flex justify-content-between align-items-center">
+                <span class="fs-6 text-muted fw-semibold">Total a pagar:</span>
+                <span class="fs-3 fw-black text-success">${{ totalAmount() | number:'1.0-0' }}</span>
+              </div>
             </div>
 
             <button 
-              class="btn btn-danger btn-lg w-100 fw-bold shadow-sm btn-webpay" 
+              class="btn btn-danger btn-lg w-100 fw-bold shadow btn-webpay d-flex align-items-center justify-content-center gap-2 py-3" 
               [disabled]="loading() || cart().length === 0"
               (click)="payWithWebpay()">
               @if (loading()) {
-                <span class="spinner-border spinner-border-sm me-2"></span>Conectando con Transbank...
+                <span class="spinner-border spinner-border-sm me-1"></span>Conectando con Transbank...
               } @else {
-                💳 Pagar con Webpay
+                <span>💳</span> Pagar con Webpay Transbank
               }
             </button>
           }

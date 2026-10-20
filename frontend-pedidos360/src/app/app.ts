@@ -8,6 +8,7 @@ import { loginRequest } from './auth-config';
 import { OrdersService } from './services/orders.service';
 import { Order } from './models/order.model';
 import { CustomerViewComponent } from './components/customer-view/customer-view';
+import { Router } from '@angular/router';
 
 export interface Product {
   id: number;
@@ -44,20 +45,19 @@ export class App implements OnInit {
   private ordersService = inject(OrdersService);
   private platformId = inject(PLATFORM_ID);
   private cdr = inject(ChangeDetectorRef);
+  private router = inject(Router);
 
   isLoggedIn = false;
   userName = '';
-  // REGLA CRÍTICA: Por defecto SIEMPRE es Client
   userRole: 'Admin' | 'Client' = 'Client';
   activeTab = 'store';
 
-  // Productos cargados dinámicamente desde Neon DB
   products: Product[] = [];
   orders: ExtendedOrder[] = [];
 
   auditLogs: AuditLog[] = [
-    { id: 1, evento: 'OrderCreated', usuario: 'johao.riquelme@empresa.com', timestamp: '2026-03-03 10:15:02', detalle: 'Pedido #103 creado por $280.000' },
-    { id: 2, evento: 'OrderAccepted', usuario: 'operador.admin@empresa.com', timestamp: '2026-03-03 10:18:40', detalle: 'Pedido #102 aceptado (Stock descontado)' }
+    { id: 1, evento: 'OrderCreated', usuario: 'joh.riquelme@duocuc.cl', timestamp: '2026-03-03 10:15:02', detalle: 'Pedido #103 creado por $280.000' },
+    { id: 2, evento: 'OrderAccepted', usuario: 'joh.riquelme@duocuc.cl', timestamp: '2026-03-03 10:18:40', detalle: 'Pedido #102 aceptado (Stock descontado)' }
   ];
 
   // Formulario Crear Pedido
@@ -91,7 +91,7 @@ export class App implements OnInit {
   editMonto: number = 0;
   editErrorMessage = '';
 
-  // Modal de Confirmación Personalizado
+  // Modal de Confirmación
   showModal = false;
   modalTitle = '';
   modalMessage = '';
@@ -167,7 +167,6 @@ export class App implements OnInit {
 
       const claims = activeAccount.idTokenClaims as any;
 
-      // Unificamos la búsqueda del correo electrónico
       const rawEmail = (
         claims?.preferred_username || 
         claims?.email || 
@@ -175,19 +174,35 @@ export class App implements OnInit {
         ''
       ).toLowerCase().trim();
 
-      // REGLA ABSOLUTA Y ESTRICTA:
-      // SOLAMENTE si el correo es el tuyo (johao.riquelme / joh.riquelme) se otorga Admin.
-      // Cualquier otro correo (incluyendo emi.parra@duocuc.cl) SERÁ 'Client'.
-      if (rawEmail.includes('johao.riquelme') || rawEmail.includes('joh.riquelme')) {
+      // =========================================================
+      // CONTROL DE ACCESO RBAC - CORREOS DEL EQUIPO
+      // =========================================================
+      if (rawEmail.includes('joh.riquelme@duocuc.cl') || rawEmail.includes('johao.riquelme')) {
+        // Johao Riquelme: Administrador General (Gestión de Pedidos)
         this.userRole = 'Admin';
+        this.activeTab = 'orders';
+      } else if (rawEmail.includes('ale.cortez@duocuc.cl')) {
+        // alexis cortez: Vista Cliente (Tienda)
+        this.userRole = 'Client';
+        this.activeTab = 'store'; 
+      } else if (rawEmail.includes('mat.castanedaq@duocuc.cl')) {
+        // Matías Castañeda: Administrador de Catálogo y Stock
+        this.userRole = 'Admin';
+        this.activeTab = 'catalog';
+      } else if (rawEmail.includes('emi.parra@duocuc.cl')) {
+        // emilio parra: Administrador de Auditoría y Reportes
+        this.userRole = 'Admin';
+        this.activeTab = 'audit';
       } else {
+        // Usuario por defecto
         this.userRole = 'Client';
         this.activeTab = 'store';
       }
 
       console.log('--- CONTROL DE ACCESO RBAC ---');
       console.log('Usuario detectado:', rawEmail);
-      console.log('Rol final asignado:', this.userRole);
+      console.log('Rol asignado:', this.userRole);
+      console.log('Vista/Tab activa:', this.activeTab);
     } else {
       this.isLoggedIn = false;
       this.userRole = 'Client';

@@ -1,7 +1,15 @@
 import { Routes } from '@angular/router';
-import { CustomerViewComponent } from './components/customer-view/customer-view';
+import { MsalGuard } from '@azure/msal-angular';
+// Asegúrate de que la ruta relativa coincida con el nombre de tu componente exportado
+import { CustomerViewComponent } from './components/customer-view/customer-view'; 
 
 export const routes: Routes = [
-  { path: '', redirectTo: 'tienda', pathMatch: 'full' },
-  { path: 'tienda', component: CustomerViewComponent }
+  { 
+    path: 'customer', 
+    component: CustomerViewComponent, 
+    canActivate: [MsalGuard] 
+  },
+  // Tus otras rutas existentes (dashboard, pedidos, etc.)
+  { path: '', redirectTo: 'login', pathMatch: 'full' },
+  { path: '**', redirectTo: 'login' }
 ];

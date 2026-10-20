@@ -8,7 +8,7 @@ import { WebpayInitResponse } from '../models/cart.model';
 })
 export class PaymentService {
   private http = inject(HttpClient);
-  private apiUrl = 'http://localhost:8080/api/payments';
+  private apiUrl = '/api/payments';
 
   // Solicita la sesión de pago al backend Java
   initiateWebpay(payload: any): Observable<WebpayInitResponse> {
