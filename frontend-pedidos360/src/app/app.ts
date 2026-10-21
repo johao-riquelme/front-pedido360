@@ -182,7 +182,7 @@ export class App implements OnInit {
         this.userRole = 'Admin';
         this.activeTab = 'orders';
       } else if (rawEmail.includes('ale.cortez@duocuc.cl')) {
-        // alexis cortez: Vista Cliente (Tienda)
+        // Alexander Cortez: Vista Cliente (Tienda)
         this.userRole = 'Client';
         this.activeTab = 'store'; 
       } else if (rawEmail.includes('mat.castanedaq@duocuc.cl')) {
@@ -190,7 +190,7 @@ export class App implements OnInit {
         this.userRole = 'Admin';
         this.activeTab = 'catalog';
       } else if (rawEmail.includes('emi.parra@duocuc.cl')) {
-        // emilio parra: Administrador de Auditoría y Reportes
+        // Emiliana Parra: Administrador de Auditoría y Reportes
         this.userRole = 'Admin';
         this.activeTab = 'audit';
       } else {

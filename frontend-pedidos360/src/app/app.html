@@ -70,9 +70,8 @@
     </div>
   </header>
 
-  <!-- MENÚ DE NAVEGACIÓN PRINCIPAL (SOLO PARA ADMINS) -->
+  <!-- MENÚ DE NAVEGACIÓN PRINCIPAL (SOLO PARA ADMINS - SIN TIENDA CLIENTE) -->
   <nav class="sub-navbar" *ngIf="userRole === 'Admin'">
-    <button [class.active]="activeTab === 'store'" (click)="setTab('store')">🛒 Tienda Cliente</button>
     <button [class.active]="activeTab === 'orders'" (click)="setTab('orders')">📦 Pedidos</button>
     <button [class.active]="activeTab === 'catalog'" (click)="setTab('catalog')">🏷️ Catálogo</button>
     <button [class.active]="activeTab === 'reports'" (click)="setTab('reports')">📊 Reportes & KPIs</button>
@@ -81,8 +80,8 @@
 
   <main class="content">
 
-    <!-- TAB 0: VISTA DE CLIENTE / TIENDA (DISPONIBLE PARA TODOS) -->
-    <section *ngIf="activeTab === 'store' || userRole !== 'Admin'">
+    <!-- VISTA DE CLIENTE / TIENDA (SOLO DISPONIBLE PARA ROL CLIENT) -->
+    <section *ngIf="userRole !== 'Admin'">
       <app-customer-view></app-customer-view>
     </section>
 
