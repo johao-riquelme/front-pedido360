@@ -8,6 +8,7 @@ import { OrdersService } from '../../services/orders.service';
 import { PaymentService } from '../../services/payment.service';
 
 export interface ExtendedOrder extends Order {
+  productoId?: number;
   productoNombre?: string;
   cantidad?: number;
 }
@@ -23,26 +24,38 @@ export class CustomerViewComponent implements OnInit {
   private ordersService = inject(OrdersService);
   private paymentService = inject(PaymentService);
 
-  // Datos desde Neon DB
+  // Datos principales de Neon DB
   products = signal<Product[]>([]);
   orders = signal<ExtendedOrder[]>([]);
 
-  // Carrito y Estado UI
+  // Empresa / Cliente
+  empresaNombre = signal<string>('');
+
+  // Carrito y Estados
   cart = signal<CartItem[]>([]);
   loading = signal<boolean>(false);
   errorMessage = signal<string | null>(null);
+  orderSuccess = signal<boolean>(false);
+  lastOrderId = signal<number | null>(null);
 
-  // Navegación interna: 'catalog' | 'history'
+  // Navegación
   activeSubTab = signal<'catalog' | 'history'>('catalog');
-
   searchQuery = signal<string>('');
 
+  // Productos filtrados por búsqueda
   filteredProducts = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
     return this.products().filter(p => 
       p.nombre.toLowerCase().includes(query) || 
       (p.categoria && p.categoria.toLowerCase().includes(query))
     );
+  });
+
+  // Pedidos filtrados según la empresa ingresada
+  myCompanyOrders = computed(() => {
+    const emp = this.empresaNombre().toLowerCase().trim();
+    if (!emp) return this.orders(); 
+    return this.orders().filter(o => o.cliente.toLowerCase().includes(emp));
   });
 
   totalAmount = computed(() => {
@@ -61,7 +74,7 @@ export class CustomerViewComponent implements OnInit {
   loadProducts(): void {
     this.ordersService.getProducts().subscribe({
       next: (data) => this.products.set(data),
-      error: () => this.errorMessage.set('Error al cargar productos desde Neon DB.')
+      error: () => this.errorMessage.set('Error al conectar con el catálogo en Neon DB.')
     });
   }
 
@@ -74,7 +87,7 @@ export class CustomerViewComponent implements OnInit {
         }));
         this.orders.set(formatted);
       },
-      error: () => this.errorMessage.set('Error al cargar historial de pedidos desde Neon DB.')
+      error: () => this.errorMessage.set('Error al cargar pedidos desde Neon DB.')
     });
   }
 
@@ -86,6 +99,12 @@ export class CustomerViewComponent implements OnInit {
   }
 
   addToCart(product: Product): void {
+    if (!this.empresaNombre().trim()) {
+      this.errorMessage.set('⚠️ Por favor, ingresa el nombre de tu empresa arriba antes de agregar productos.');
+      return;
+    }
+
+    this.errorMessage.set(null);
     const currentCart = this.cart();
     const existingIndex = currentCart.findIndex(item => item.product.id === product.id);
 
@@ -106,26 +125,79 @@ export class CustomerViewComponent implements OnInit {
   payWithWebpay(): void {
     if (this.cart().length === 0) return;
 
+    if (!this.empresaNombre().trim()) {
+      this.errorMessage.set('⚠️ Debe ingresar el nombre de la empresa antes de procesar el pago.');
+      return;
+    }
+
     this.loading.set(true);
     this.errorMessage.set(null);
 
-    const payload = {
-      items: this.cart().map(item => ({
-        productId: item.product.id,
-        quantity: item.quantity,
-        price: item.product.precio
-      })),
-      totalAmount: this.totalAmount()
-    };
-
-    this.paymentService.initiateWebpay(payload).subscribe({
-      next: (res) => {
-        this.paymentService.redirectToWebpay(res.url, res.token);
-      },
-      error: () => {
-        this.loading.set(false);
-        this.errorMessage.set('No se pudo iniciar el pago con Webpay.');
+    // 1. Descontar stock localmente para actualización inmediata
+    const updatedProducts = [...this.products()];
+    this.cart().forEach(cartItem => {
+      const prod = updatedProducts.find(p => p.id === cartItem.product.id);
+      if (prod) {
+        prod.stock = Math.max(0, prod.stock - cartItem.quantity);
       }
     });
+    this.products.set(updatedProducts);
+
+    // 2. Crear Pedido en Neon DB
+    const firstItem = this.cart()[0];
+    const orderPayload: ExtendedOrder = {
+      cliente: this.empresaNombre().trim(),
+      monto: this.totalAmount(),
+      estado: 'CREADO',
+      fecha: new Date().toISOString().split('T')[0],
+      productoId: firstItem?.product.id,
+      productoNombre: firstItem?.product.nombre,
+      cantidad: this.totalItemsCount()
+    };
+
+    this.ordersService.createOrder(orderPayload).subscribe({
+      next: (createdOrder) => {
+        this.lastOrderId.set(createdOrder.id || Math.floor(Math.random() * 1000));
+        this.orders.set([createdOrder, ...this.orders()]);
+
+        // 3. Iniciar Pasarela de Pago
+        const paymentPayload = {
+          orderId: createdOrder.id,
+          items: this.cart().map(item => ({
+            productId: item.product.id,
+            quantity: item.quantity,
+            price: item.product.precio
+          })),
+          totalAmount: this.totalAmount()
+        };
+
+        this.paymentService.initiateWebpay(paymentPayload).subscribe({
+          next: (res) => {
+            this.loading.set(false);
+            this.orderSuccess.set(true);
+            this.cart.set([]); // Vaciar carrito
+            if (res && res.url) {
+              setTimeout(() => {
+                this.paymentService.redirectToWebpay(res.url, res.token);
+              }, 3000);
+            }
+          },
+          error: () => {
+            this.loading.set(false);
+            this.orderSuccess.set(true);
+            this.cart.set([]);
+          }
+        });
+      },
+      error: (err) => {
+        this.loading.set(false);
+        this.errorMessage.set('No se pudo registrar el pedido en la base de datos de Neon.');
+        console.error(err);
+      }
+    });
+  }
+
+  closeSuccessModal(): void {
+    this.orderSuccess.set(false);
   }
 }
