@@ -1,38 +1,29 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
 
 :host {
   font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   display: block;
-  background-color: #f8fafc;
-  min-height: 100vh;
 }
 
-.fw-extrabold { font-weight: 800; }
-.fw-black { font-weight: 900; }
 .extra-small { font-size: 0.75rem; }
 
-/* CONTENEDOR GENERAL */
 .store-wrapper {
   max-width: 1240px;
   margin: 0 auto;
   padding: 10px;
 }
 
-/* HERO BANNER */
+/* HERO CARD */
 .hero-card {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #1e40af 100%);
-  box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.2);
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
 }
 
 .hero-chip {
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.15);
   color: #60a5fa;
-  padding: 5px 14px;
-  border-radius: 30px;
+  padding: 4px 12px;
+  border-radius: 20px;
   font-size: 0.8rem;
-  font-weight: 700;
 }
 
 .pulse-dot {
@@ -40,205 +31,79 @@
   height: 8px;
   background-color: #22c55e;
   border-radius: 50%;
-  box-shadow: 0 0 8px #22c55e;
 }
 
-.hero-illustration {
-  font-size: 5rem;
-  filter: drop-shadow(0 10px 15px rgba(0, 0, 0, 0.3));
-  animation: float 3s ease-in-out infinite;
+/* SUB TABS DE CLIENTE */
+.subtab-btn {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 12px;
+  transition: all 0.2s ease;
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-10px); }
+.subtab-btn.active, .subtab-btn:hover {
+  background-color: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
 }
 
 /* BUSCADOR */
 .search-input-group {
   position: relative;
-  display: flex;
-  align-items: center;
 }
 
 .search-icon {
   position: absolute;
-  left: 16px;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
   opacity: 0.5;
-  font-size: 1rem;
 }
 
 .search-field {
-  padding-left: 44px;
-  padding-right: 40px;
-  height: 48px;
+  padding-left: 40px;
+  height: 46px;
   border-radius: 12px;
   border: 1px solid #e2e8f0;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-  font-size: 0.95rem;
-  transition: all 0.2s ease;
-}
-
-.search-field:focus {
-  border-color: #2563eb;
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.15);
-}
-
-.clear-search-btn {
-  position: absolute;
-  right: 12px;
-  background: none;
-  border: none;
-  color: #94a3b8;
-  font-weight: bold;
-  cursor: pointer;
 }
 
 /* TARJETAS DE PRODUCTO */
 .product-card {
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+  transition: transform 0.2s ease;
   background: #ffffff;
-  border: 1px solid #f1f5f9 !important;
 }
 
 .product-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 16px 24px -6px rgba(15, 23, 42, 0.1) !important;
+  transform: translateY(-4px);
 }
 
 .product-media-container {
-  height: 130px;
-  background: linear-gradient(180deg, #f8fafc 0%, #edf2f7 100%);
-  position: relative;
+  height: 120px;
+  background: #f8fafc;
 }
 
 .product-emoji {
-  font-size: 3.5rem;
-  transition: transform 0.25s ease;
+  font-size: 3rem;
 }
 
-.product-card:hover .product-emoji {
-  transform: scale(1.1);
-}
-
-/* BADGES DE STOCK */
-.stock-badge {
-  font-size: 0.72rem;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 20px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  backdrop-filter: blur(4px);
-}
-
-.badge-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-}
-
-/* BOTÓN AGREGAR AL CARRITO */
-.btn-add-cart {
-  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
-  border: none;
-  padding: 10px 16px;
-  font-size: 0.9rem;
-  transition: all 0.2s ease;
-}
-
-.btn-add-cart:hover:not(:disabled) {
-  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
-  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
-  transform: translateY(-1px);
-}
-
-.btn-add-cart:disabled {
-  background: #cbd5e1;
-  color: #64748b;
-  cursor: not-allowed;
-}
-
-/* CARRITO SIDEBAR */
-.cart-card {
-  border: 1px solid #e2e8f0 !important;
-  box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05) !important;
-  background: #ffffff;
-}
-
+/* CARRITO */
 .cart-header {
   background: #0f172a;
 }
 
-.cart-items-wrapper {
-  max-height: 280px;
-  overflow-y: auto;
-}
-
-.cart-items-wrapper::-webkit-scrollbar {
-  width: 4px;
-}
-
-.cart-items-wrapper::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
-}
-
-.cart-item-row {
-  border: 1px solid #f1f5f9;
-  transition: background-color 0.15s ease;
-}
-
-.cart-item-row:hover {
-  background-color: #f1f5f9 !important;
-}
-
-.btn-delete-item {
-  width: 28px;
-  height: 28px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.85rem;
-  transition: background-color 0.2s;
-}
-
-.btn-delete-item:hover {
-  background-color: #fee2e2;
-}
-
-.total-box {
-  background-color: #f8fafc;
+.cart-card {
   border: 1px solid #e2e8f0;
 }
 
-/* BOTÓN WEBPAY TRANSBANK PREMIUM */
 .btn-webpay-premium {
-  background: linear-gradient(135deg, #e60023 0%, #cc001f 100%);
+  background-color: #e60023;
   border: none;
-  color: #ffffff;
-  font-size: 0.95rem;
-  letter-spacing: 0.01em;
-  transition: all 0.2s ease;
+  border-radius: 10px;
 }
 
 .btn-webpay-premium:hover:not(:disabled) {
-  background: linear-gradient(135deg, #cc001f 0%, #a80019 100%);
-  box-shadow: 0 8px 20px rgba(230, 0, 35, 0.35);
-  transform: translateY(-1px);
-}
-
-.btn-webpay-premium:disabled {
-  background: #fca5a5;
-  color: #ffffff;
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
-/* ALERTAS PERSONALIZADAS */
-.alert-custom-danger {
-  background-color: #fef2f2;
-  border: 1px solid #fecaca;
-  color: #991b1b;
+  background-color: #cc001f;
 }

@@ -3,8 +3,14 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Product } from '../../models/product.model';
 import { CartItem } from '../../models/cart.model';
+import { Order } from '../../models/order.model';
 import { OrdersService } from '../../services/orders.service';
 import { PaymentService } from '../../services/payment.service';
+
+export interface ExtendedOrder extends Order {
+  productoNombre?: string;
+  cantidad?: number;
+}
 
 @Component({
   selector: 'app-customer-view',
@@ -17,26 +23,26 @@ export class CustomerViewComponent implements OnInit {
   private ordersService = inject(OrdersService);
   private paymentService = inject(PaymentService);
 
+  // Datos desde Neon DB
   products = signal<Product[]>([]);
+  orders = signal<ExtendedOrder[]>([]);
+
+  // Carrito y Estado UI
   cart = signal<CartItem[]>([]);
   loading = signal<boolean>(false);
   errorMessage = signal<string | null>(null);
 
-  // Búsqueda y Filtro de Categoría (Visual)
-  searchQuery = signal<string>('');
-  selectedCategory = signal<string>('Todos');
+  // Navegación interna: 'catalog' | 'history'
+  activeSubTab = signal<'catalog' | 'history'>('catalog');
 
-  // Filtro computado de productos
+  searchQuery = signal<string>('');
+
   filteredProducts = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
-    const cat = this.selectedCategory();
-
-    return this.products().filter(p => {
-      const matchesSearch = p.nombre.toLowerCase().includes(query) || 
-                            (p.categoria && p.categoria.toLowerCase().includes(query));
-      const matchesCategory = cat === 'Todos' || p.categoria === cat;
-      return matchesSearch && matchesCategory;
-    });
+    return this.products().filter(p => 
+      p.nombre.toLowerCase().includes(query) || 
+      (p.categoria && p.categoria.toLowerCase().includes(query))
+    );
   });
 
   totalAmount = computed(() => {
@@ -49,17 +55,34 @@ export class CustomerViewComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadProducts();
+    this.loadOrders();
   }
 
   loadProducts(): void {
     this.ordersService.getProducts().subscribe({
       next: (data) => this.products.set(data),
-      error: () => this.errorMessage.set('Error al cargar el catálogo de productos.')
+      error: () => this.errorMessage.set('Error al cargar productos desde Neon DB.')
     });
   }
 
-  setCategory(cat: string): void {
-    this.selectedCategory.set(cat);
+  loadOrders(): void {
+    this.ordersService.getOrders().subscribe({
+      next: (data) => {
+        const formatted = data.map(o => ({
+          ...o,
+          monto: o.monto ?? o.total ?? 0
+        }));
+        this.orders.set(formatted);
+      },
+      error: () => this.errorMessage.set('Error al cargar historial de pedidos desde Neon DB.')
+    });
+  }
+
+  setSubTab(tab: 'catalog' | 'history'): void {
+    this.activeSubTab.set(tab);
+    if (tab === 'history') {
+      this.loadOrders();
+    }
   }
 
   addToCart(product: Product): void {
