@@ -24,46 +24,46 @@ export class CustomerViewComponent implements OnInit {
   private ordersService = inject(OrdersService);
   private paymentService = inject(PaymentService);
 
-  // Datos de Neon DB
+  // Estado reactivo
   products = signal<Product[]>([]);
   orders = signal<ExtendedOrder[]>([]);
-
-  // Empresa / Cliente
   empresaNombre = signal<string>('');
-
-  // Carrito y Estados
   cart = signal<CartItem[]>([]);
   loading = signal<boolean>(false);
   errorMessage = signal<string | null>(null);
   orderSuccess = signal<boolean>(false);
   lastOrderId = signal<number | null>(null);
 
-  // Navegación
   activeSubTab = signal<'catalog' | 'history'>('catalog');
   searchQuery = signal<string>('');
 
-  // Productos filtrados para la tabla
+  // Filtro de productos
   filteredProducts = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
-    return this.products().filter(p => 
-      p.nombre.toLowerCase().includes(query) || 
-      (p.categoria && p.categoria.toLowerCase().includes(query))
-    );
+    const prods = this.products() || [];
+    
+    return prods.filter(p => {
+      const nombreMatches = p?.nombre ? p.nombre.toLowerCase().includes(query) : false;
+      const catMatches = p?.categoria ? p.categoria.toLowerCase().includes(query) : false;
+      return nombreMatches || catMatches;
+    });
   });
 
-  // El filtro SOLO se activa si existe un nombre de empresa ingresado. Si está vacío, retorna array vacío [].
+  // Filtro de historial por empresa (Solo activo al ingresar nombre)
   myCompanyOrders = computed(() => {
     const emp = this.empresaNombre().toLowerCase().trim();
     if (!emp) return []; 
-    return this.orders().filter(o => o.cliente.toLowerCase().includes(emp));
+    
+    const allOrders = this.orders() || [];
+    return allOrders.filter(o => o?.cliente && o.cliente.toLowerCase().includes(emp));
   });
 
   totalAmount = computed(() => {
-    return this.cart().reduce((acc, item) => acc + (item.product.precio * item.quantity), 0);
+    return (this.cart() || []).reduce((acc, item) => acc + ((item.product?.precio || 0) * item.quantity), 0);
   });
 
   totalItemsCount = computed(() => {
-    return this.cart().reduce((acc, item) => acc + item.quantity, 0);
+    return (this.cart() || []).reduce((acc, item) => acc + item.quantity, 0);
   });
 
   ngOnInit(): void {
@@ -73,21 +73,38 @@ export class CustomerViewComponent implements OnInit {
 
   loadProducts(): void {
     this.ordersService.getProducts().subscribe({
-      next: (data) => this.products.set(data),
-      error: () => this.errorMessage.set('Error al conectar con el catálogo en Neon DB.')
+      next: (data) => {
+        if (Array.isArray(data)) {
+          this.products.set(data);
+        } else {
+          this.products.set([]);
+        }
+      },
+      error: (err) => {
+        console.error('Error productos:', err);
+        this.errorMessage.set('Error al conectar con el catálogo en Neon DB.');
+      }
     });
   }
 
   loadOrders(): void {
     this.ordersService.getOrders().subscribe({
       next: (data) => {
-        const formatted = data.map(o => ({
-          ...o,
-          monto: o.monto ?? o.total ?? 0
-        }));
-        this.orders.set(formatted);
+        if (Array.isArray(data)) {
+          const formatted = data.map(o => ({
+            ...o,
+            cliente: o.cliente || 'Empresa No Especificada',
+            monto: o.monto ?? o.total ?? 0
+          }));
+          this.orders.set(formatted);
+        } else {
+          this.orders.set([]);
+        }
       },
-      error: () => this.errorMessage.set('Error al cargar pedidos desde Neon DB.')
+      error: (err) => {
+        console.error('Error pedidos:', err);
+        this.errorMessage.set('Error al cargar pedidos desde Neon DB.');
+      }
     });
   }
 
@@ -121,7 +138,9 @@ export class CustomerViewComponent implements OnInit {
     }
   }
 
-  updateQuantity(productId: number, delta: number): void {
+  updateQuantity(productId: number | undefined, delta: number): void {
+    if (!productId) return;
+
     const currentCart = [...this.cart()];
     const index = currentCart.findIndex(item => item.product.id === productId);
 
@@ -153,7 +172,7 @@ export class CustomerViewComponent implements OnInit {
     this.loading.set(true);
     this.errorMessage.set(null);
 
-    // 1. Descontar stock localmente
+    // Descuento local de stock
     const updatedProducts = [...this.products()];
     this.cart().forEach(cartItem => {
       const prod = updatedProducts.find(p => p.id === cartItem.product.id);
@@ -163,7 +182,7 @@ export class CustomerViewComponent implements OnInit {
     });
     this.products.set(updatedProducts);
 
-    // 2. Guardar Pedido en Neon DB
+    // Registro de la orden
     const firstItem = this.cart()[0];
     const orderPayload: ExtendedOrder = {
       cliente: this.empresaNombre().trim(),
@@ -180,7 +199,6 @@ export class CustomerViewComponent implements OnInit {
         this.lastOrderId.set(createdOrder.id || Math.floor(Math.random() * 1000));
         this.orders.set([createdOrder, ...this.orders()]);
 
-        // 3. Conectar Pasarela Transbank Webpay
         const paymentPayload = {
           orderId: createdOrder.id,
           items: this.cart().map(item => ({
