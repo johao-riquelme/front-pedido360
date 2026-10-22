@@ -172,17 +172,7 @@ export class CustomerViewComponent implements OnInit {
     this.loading.set(true);
     this.errorMessage.set(null);
 
-    // Descuento local de stock
-    const updatedProducts = [...this.products()];
-    this.cart().forEach(cartItem => {
-      const prod = updatedProducts.find(p => p.id === cartItem.product.id);
-      if (prod) {
-        prod.stock = Math.max(0, prod.stock - cartItem.quantity);
-      }
-    });
-    this.products.set(updatedProducts);
-
-    // Registro de la orden
+    // 1. Guardar la orden inicial en Neon DB
     const firstItem = this.cart()[0];
     const orderPayload: ExtendedOrder = {
       cliente: this.empresaNombre().trim(),
@@ -197,40 +187,45 @@ export class CustomerViewComponent implements OnInit {
     this.ordersService.createOrder(orderPayload).subscribe({
       next: (createdOrder) => {
         this.lastOrderId.set(createdOrder.id || Math.floor(Math.random() * 1000));
-        this.orders.set([createdOrder, ...this.orders()]);
 
+        // 2. Preparar el payload para la API de Transbank Webpay
         const paymentPayload = {
           orderId: createdOrder.id,
+          amount: this.totalAmount(),
+          totalAmount: this.totalAmount(),
           items: this.cart().map(item => ({
             productId: item.product.id,
             quantity: item.quantity,
             price: item.product.precio
-          })),
-          totalAmount: this.totalAmount()
+          }))
         };
 
+        // 3. Consumir API de Webpay
         this.paymentService.initiateWebpay(paymentPayload).subscribe({
-          next: (res) => {
+          next: (res: any) => {
             this.loading.set(false);
-            this.orderSuccess.set(true);
-            this.cart.set([]);
-            if (res && res.url) {
-              setTimeout(() => {
-                this.paymentService.redirectToWebpay(res.url, res.token);
-              }, 2500);
+            const webpayUrl = res?.url || res?.urlWebpay;
+            const webpayToken = res?.token || res?.token_ws;
+
+            if (webpayUrl && webpayToken) {
+              // REDIRECCIÓN DIRECTA A TRANSBANK (Formulario POST con token_ws)
+              this.paymentService.redirectToWebpay(webpayUrl, webpayToken);
+            } else {
+              console.error('Respuesta Webpay inválida:', res);
+              this.errorMessage.set('La pasarela de Webpay no retornó una URL válida de pago.');
             }
           },
-          error: () => {
+          error: (err) => {
             this.loading.set(false);
-            this.orderSuccess.set(true);
-            this.cart.set([]);
+            console.error('Error al conectar con la API de Webpay:', err);
+            this.errorMessage.set('No se pudo establecer conexión con Transbank Webpay. Revisa el servicio backend de pagos.');
           }
         });
       },
       error: (err) => {
         this.loading.set(false);
-        this.errorMessage.set('Error al registrar la orden en Neon DB.');
-        console.error(err);
+        console.error('Error al registrar orden en Neon DB:', err);
+        this.errorMessage.set('No se pudo registrar la orden en la base de datos de Neon DB.');
       }
     });
   }
