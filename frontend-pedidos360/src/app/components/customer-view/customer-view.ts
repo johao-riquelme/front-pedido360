@@ -1,6 +1,6 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { FormsModule } from '@angular/forms';
 import { Product } from '../../models/product.model';
 import { CartItem } from '../../models/cart.model';
 import { OrdersService } from '../../services/orders.service';
@@ -9,44 +9,46 @@ import { PaymentService } from '../../services/payment.service';
 @Component({
   selector: 'app-customer-view',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, FormsModule],
   templateUrl: './customer-view.html',
   styleUrl: './customer-view.css'
 })
 export class CustomerViewComponent implements OnInit {
   private ordersService = inject(OrdersService);
   private paymentService = inject(PaymentService);
-  private route = inject(ActivatedRoute);
 
   products = signal<Product[]>([]);
   cart = signal<CartItem[]>([]);
   loading = signal<boolean>(false);
   errorMessage = signal<string | null>(null);
-  successMessage = signal<string | null>(null);
 
-  // Recalcula automáticamente la suma total de todos los productos e ítems en el carrito
+  // Búsqueda y Filtro de Categoría (Visual)
+  searchQuery = signal<string>('');
+  selectedCategory = signal<string>('Todos');
+
+  // Filtro computado de productos
+  filteredProducts = computed(() => {
+    const query = this.searchQuery().toLowerCase().trim();
+    const cat = this.selectedCategory();
+
+    return this.products().filter(p => {
+      const matchesSearch = p.nombre.toLowerCase().includes(query) || 
+                            (p.categoria && p.categoria.toLowerCase().includes(query));
+      const matchesCategory = cat === 'Todos' || p.categoria === cat;
+      return matchesSearch && matchesCategory;
+    });
+  });
+
   totalAmount = computed(() => {
     return this.cart().reduce((acc, item) => acc + (item.product.precio * item.quantity), 0);
   });
 
+  totalItemsCount = computed(() => {
+    return this.cart().reduce((acc, item) => acc + item.quantity, 0);
+  });
+
   ngOnInit(): void {
     this.loadProducts();
-
-    this.route.queryParams.subscribe(params => {
-      const status = params['payment'];
-      
-      if (status === 'success') {
-        this.successMessage.set(`¡Pago exitoso! Tu orden es: ${params['buyOrder']}`);
-        this.cart.set([]);
-        this.errorMessage.set(null);
-      } else if (status === 'aborted') {
-        this.errorMessage.set('Cancelaste el pago en Transbank.');
-      } else if (status === 'rejected') {
-        this.errorMessage.set('El pago fue rechazado por tu banco.');
-      } else if (status === 'error') {
-        this.errorMessage.set('Ocurrió un error en la pasarela de pagos.');
-      }
-    });
   }
 
   loadProducts(): void {
@@ -56,20 +58,22 @@ export class CustomerViewComponent implements OnInit {
     });
   }
 
+  setCategory(cat: string): void {
+    this.selectedCategory.set(cat);
+  }
+
   addToCart(product: Product): void {
-    this.cart.update(currentCart => {
-      const existingIndex = currentCart.findIndex(item => item.product.id === product.id);
+    const currentCart = this.cart();
+    const existingIndex = currentCart.findIndex(item => item.product.id === product.id);
 
-      if (existingIndex > -1) {
-        return currentCart.map((item, index) =>
-          index === existingIndex && item.quantity < product.stock
-            ? { ...item, quantity: item.quantity + 1 }
-            : item
-        );
+    if (existingIndex > -1) {
+      if (currentCart[existingIndex].quantity < product.stock) {
+        currentCart[existingIndex].quantity++;
+        this.cart.set([...currentCart]);
       }
-
-      return [...currentCart, { product, quantity: 1 }];
-    });
+    } else {
+      this.cart.set([...currentCart, { product, quantity: 1 }]);
+    }
   }
 
   removeFromCart(productId?: number): void {
@@ -81,18 +85,13 @@ export class CustomerViewComponent implements OnInit {
 
     this.loading.set(true);
     this.errorMessage.set(null);
-    this.successMessage.set(null);
 
-    // Payload compatible con las distintas formas en que el backend Java puede recibir el carrito
     const payload = {
       items: this.cart().map(item => ({
         productId: item.product.id,
         quantity: item.quantity,
-        cantidad: item.quantity,
-        price: item.product.precio,
-        precio: item.product.precio
+        price: item.product.precio
       })),
-      amount: this.totalAmount(),
       totalAmount: this.totalAmount()
     };
 

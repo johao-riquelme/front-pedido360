@@ -1,63 +1,130 @@
-<div class="container my-4">
-
-  <!-- BANNER HEADER PRINCIPAL -->
-  <header class="customer-hero mb-4 p-4 rounded-4 shadow-sm text-white d-flex justify-content-between align-items-center">
-    <div>
-      <span class="hero-badge mb-2 d-inline-block">⚡ Tienda Oficial</span>
-      <h1 class="h2 fw-extrabold m-0">Catálogo de Productos</h1>
-      <p class="text-white-50 m-0 mt-1">Selecciona tus artículos y paga de forma rápida y segura con Webpay.</p>
-    </div>
-    <div class="hero-cart-summary d-none d-lg-flex align-items-center gap-2 bg-white text-dark px-3 py-2 rounded-3 shadow-sm">
-      <span class="fs-4">🛍️</span>
-      <div>
-        <small class="text-muted d-block lh-1">Tu Carrito</small>
-        <strong class="text-primary fs-6">{{ cart().length }} {{ cart().length === 1 ? 'producto' : 'productos' }}</strong>
+<div class="store-wrapper">
+  
+  <!-- HERO BANNER DE BIENVENIDA Y PROMOCIÓN -->
+  <section class="hero-card mb-4 p-4 p-md-5 rounded-4 position-relative overflow-hidden">
+    <div class="row align-items-center position-relative z-1">
+      <div class="col-lg-8">
+        <span class="hero-chip mb-2 d-inline-flex align-items-center gap-1">
+          <span class="pulse-dot"></span> Tienda Oficial Pedidos 360
+        </span>
+        <h1 class="display-6 fw-extrabold text-white mb-2">Descubre Nuestros Productos</h1>
+        <p class="text-white-50 lead fs-6 mb-3">
+          Explora nuestro catálogo exclusivo. Añade tus ítems al carrito y paga con la máxima seguridad mediante Transbank Webpay.
+        </p>
+        
+        <!-- BARRA DE GARANTÍAS / BENEFICIOS -->
+        <div class="d-flex flex-wrap gap-3 mt-4 text-white-50 fs-7">
+          <div class="d-flex align-items-center gap-2">
+            <span class="benefit-icon">🚀</span> Despacho Inmediato
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="benefit-icon">🔒</span> Pago 100% Seguro
+          </div>
+          <div class="d-flex align-items-center gap-2">
+            <span class="benefit-icon">⚡</span> Stock en Tiempo Real
+          </div>
+        </div>
+      </div>
+      
+      <div class="col-lg-4 d-none d-lg-block text-end">
+        <div class="hero-illustration">🛍️</div>
       </div>
     </div>
-  </header>
+  </section>
 
-  <!-- MENSAJE DE ERROR -->
+  <!-- ALERTA DE ERROR -->
   @if (errorMessage()) {
-    <div class="alert alert-danger mb-4 shadow-sm border-0 rounded-3 d-flex align-items-center gap-2">
-      <span class="fs-5">⚠️</span>
-      <div>{{ errorMessage() }}</div>
+    <div class="alert alert-custom-danger mb-4 p-3 rounded-3 d-flex align-items-center gap-3">
+      <span class="fs-4">⚠️</span>
+      <div>
+        <strong class="d-block">Atención</strong>
+        <span class="small">{{ errorMessage() }}</span>
+      </div>
     </div>
   }
 
+  <!-- BARRA DE BÚSQUEDA Y CONTROLES -->
+  <div class="row mb-4 g-3 align-items-center">
+    <div class="col-md-7 col-lg-8">
+      <div class="search-input-group">
+        <span class="search-icon">🔍</span>
+        <input 
+          type="text" 
+          class="form-control search-field" 
+          placeholder="Buscar producto por nombre..."
+          [ngModel]="searchQuery()"
+          (ngModelChange)="searchQuery.set($event)"
+        />
+        @if (searchQuery()) {
+          <button class="clear-search-btn" (click)="searchQuery.set('')">✕</button>
+        }
+      </div>
+    </div>
+    
+    <div class="col-md-5 col-lg-4 text-md-end">
+      <div class="counter-badge p-2 px-3 rounded-3 bg-white border d-inline-flex align-items-center gap-2 shadow-sm">
+        <span class="text-muted small">Catálogo:</span>
+        <strong class="text-dark">{{ filteredProducts().length }} productos</strong>
+      </div>
+    </div>
+  </div>
+
   <div class="row g-4">
-    <!-- Listado de Productos (Columna Izquierda) -->
+    <!-- CATALOGO DE PRODUCTOS (GRID PRINCIPAL) -->
     <div class="col-lg-8">
+      
+      @if (filteredProducts().length === 0) {
+        <div class="text-center py-5 bg-white rounded-4 border shadow-sm">
+          <div class="fs-1 mb-2">🔎</div>
+          <h5 class="fw-bold text-dark">No se encontraron productos</h5>
+          <p class="text-muted small m-0">Intenta buscar con otra palabra clave.</p>
+        </div>
+      }
+
       <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
-        @for (product of products(); track product.id) {
+        @for (product of filteredProducts(); track product.id) {
           <div class="col">
-            <div class="card h-100 shadow-sm border-0 product-card position-relative overflow-hidden">
+            <div class="card h-100 border-0 product-card shadow-sm rounded-4 position-relative">
               
-              <!-- Badge Stock Top Right -->
-              <div class="position-absolute top-0 end-0 m-3 z-1">
-                <span class="badge shadow-sm" [ngClass]="product.stock > 0 ? 'stock-available' : 'stock-empty'">
-                  {{ product.stock > 0 ? 'Stock: ' + product.stock : 'Agotado' }}
+              <!-- BADGE STOCK TOP RIGHT -->
+              <div class="position-absolute top-0 end-0 m-3 z-2">
+                <span class="stock-badge shadow-sm" [ngClass]="product.stock > 0 ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'">
+                  <span class="badge-dot" [ngClass]="product.stock > 0 ? 'bg-success' : 'bg-danger'"></span>
+                  {{ product.stock > 0 ? product.stock + ' disp.' : 'Agotado' }}
                 </span>
               </div>
 
-              <!-- Icono Ilustrativo de Producto -->
-              <div class="product-img-wrapper d-flex align-items-center justify-content-center bg-light">
-                <span class="product-icon">📦</span>
+              <!-- CONTENEDOR IMAGEN / ICONO -->
+              <div class="product-media-container rounded-top-4 d-flex align-items-center justify-content-center">
+                <span class="product-emoji">📦</span>
               </div>
 
-              <div class="card-body d-flex flex-column p-3">
-                <h5 class="card-title fw-bold text-dark mb-1 text-truncate">{{ product.nombre }}</h5>
-                
-                <div class="mt-2 mb-3">
-                  <small class="text-muted d-block">Precio unitario</small>
-                  <span class="fs-5 fw-extrabold text-primary">${{ product.precio | number:'1.0-0' }}</span>
+              <!-- CUERPO TARJETA -->
+              <div class="card-body p-3 d-flex flex-column">
+                <div class="product-category text-uppercase small text-muted fw-bold mb-1">
+                  {{ product.categoria || 'Producto' }}
                 </div>
+                
+                <h5 class="card-title text-dark fw-bold mb-2 text-truncate" [title]="product.nombre">
+                  {{ product.nombre }}
+                </h5>
 
-                <button 
-                  class="btn btn-primary mt-auto w-100 fw-semibold btn-add d-flex align-items-center justify-content-center gap-2" 
-                  [disabled]="product.stock <= 0"
-                  (click)="addToCart(product)">
-                  <span>🛒</span> {{ product.stock > 0 ? 'Agregar al Carrito' : 'Sin Stock' }}
-                </button>
+                <div class="mt-auto pt-2 border-top">
+                  <div class="d-flex align-items-baseline justify-content-between mb-3">
+                    <span class="text-muted extra-small">Precio:</span>
+                    <span class="product-price text-primary fw-extrabold fs-5">
+                      ${{ product.precio | number:'1.0-0' }}
+                    </span>
+                  </div>
+
+                  <button 
+                    class="btn btn-primary w-100 fw-bold btn-add-cart d-flex align-items-center justify-content-center gap-2 rounded-3" 
+                    [disabled]="product.stock <= 0"
+                    (click)="addToCart(product)">
+                    <span class="cart-btn-icon">🛒</span> 
+                    <span>{{ product.stock > 0 ? 'Agregar' : 'Sin Stock' }}</span>
+                  </button>
+                </div>
               </div>
 
             </div>
@@ -66,63 +133,95 @@
       </div>
     </div>
 
-    <!-- Carrito y Botón Webpay (Columna Derecha) -->
+    <!-- PANEL CARRITO LATERAL (COLUMN DERECHA) -->
     <div class="col-lg-4">
-      <div class="card shadow-sm border-0 sticky-top cart-sidebar" style="top: 20px;">
-        <div class="card-header bg-dark text-white py-3 px-4 d-flex justify-content-between align-items-center">
-          <h5 class="m-0 fw-bold d-flex align-items-center gap-2">
-            <span>🛒</span> Resumen de Compra
-          </h5>
-          <span class="badge bg-secondary rounded-pill">{{ cart().length }}</span>
+      <div class="card border-0 shadow-sm rounded-4 sticky-top cart-card" style="top: 24px;">
+        
+        <!-- HEADER CARRITO -->
+        <div class="cart-header p-3 px-4 rounded-top-4 d-flex align-items-center justify-content-between">
+          <div class="d-flex align-items-center gap-2 text-white">
+            <span class="fs-5">🛒</span>
+            <h5 class="m-0 fw-bold fs-6">Resumen de Compra</h5>
+          </div>
+          <span class="badge bg-primary text-white rounded-pill px-3 py-2 fw-bold">
+            {{ totalItemsCount() }} {{ totalItemsCount() === 1 ? 'item' : 'items' }}
+          </span>
         </div>
 
+        <!-- CUERPO CARRITO -->
         <div class="card-body p-4">
           @if (cart().length === 0) {
-            <div class="text-center my-4 py-4 text-muted">
-              <div class="fs-1 mb-2 opacity-50">🛍️</div>
-              <p class="m-0 fw-bold text-dark fs-6">El carrito está vacío</p>
-              <small class="text-muted">Agrega productos del catálogo para comenzar tu compra.</small>
+            <div class="empty-cart-state text-center py-4">
+              <div class="empty-icon-wrapper mb-3">🛍️</div>
+              <h6 class="fw-bold text-dark mb-1">Tu carrito está vacío</h6>
+              <p class="text-muted small m-0">Selecciona productos del catálogo para comenzar a comprar.</p>
             </div>
           } @else {
-            <ul class="list-group list-group-flush mb-3 cart-list">
+            
+            <div class="cart-items-wrapper pe-1 mb-3">
               @for (item of cart(); track item.product.id) {
-                <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-3 border-bottom-subtle">
-                  <div class="pe-2">
-                    <strong class="text-dark d-block lh-sm mb-1">{{ item.product.nombre }}</strong>
-                    <span class="badge bg-light text-secondary border">
+                <div class="cart-item-row p-2 mb-2 rounded-3 bg-light d-flex align-items-center justify-content-between">
+                  <div class="item-info pe-2 overflow-hidden">
+                    <strong class="d-block text-dark small text-truncate">{{ item.product.nombre }}</strong>
+                    <span class="text-muted extra-small">
                       {{ item.quantity }} x ${{ item.product.precio | number:'1.0-0' }}
                     </span>
                   </div>
+
                   <div class="d-flex align-items-center gap-2">
                     <span class="fw-bold text-dark fs-6">${{ (item.quantity * item.product.precio) | number:'1.0-0' }}</span>
-                    <button class="btn btn-sm btn-outline-danger btn-delete-item border-0 rounded-circle p-1" (click)="removeFromCart(item.product.id)" title="Eliminar ítem">
+                    <button 
+                      class="btn btn-sm btn-delete-item text-danger border-0 rounded-circle" 
+                      (click)="removeFromCart(item.product.id)" 
+                      title="Quitar ítem">
                       🗑️
                     </button>
                   </div>
-                </li>
+                </div>
               }
-            </ul>
+            </div>
 
-            <div class="bg-light p-3 rounded-3 mb-4">
+            <!-- DESGLOSE TOTAL -->
+            <div class="total-box p-3 rounded-3 mb-4">
+              <div class="d-flex justify-content-between text-muted small mb-1">
+                <span>Subtotal</span>
+                <span>${{ totalAmount() | number:'1.0-0' }}</span>
+              </div>
+              <div class="d-flex justify-content-between text-muted small mb-2">
+                <span>Envío</span>
+                <span class="text-success fw-bold">GRATIS</span>
+              </div>
+              <hr class="my-2 border-secondary-subtle">
               <div class="d-flex justify-content-between align-items-center">
-                <span class="fs-6 text-muted fw-semibold">Total a pagar:</span>
-                <span class="fs-3 fw-black text-success">${{ totalAmount() | number:'1.0-0' }}</span>
+                <span class="fw-bold text-dark fs-6">Total Final:</span>
+                <span class="fs-4 fw-black text-success">${{ totalAmount() | number:'1.0-0' }}</span>
               </div>
             </div>
 
+            <!-- BOTÓN TRANSBANK WEBPAY -->
             <button 
-              class="btn btn-danger btn-lg w-100 fw-bold shadow btn-webpay d-flex align-items-center justify-content-center gap-2 py-3" 
+              class="btn btn-webpay-premium w-100 fw-bold shadow-sm rounded-3 py-3 d-flex align-items-center justify-content-center gap-2" 
               [disabled]="loading() || cart().length === 0"
               (click)="payWithWebpay()">
               @if (loading()) {
-                <span class="spinner-border spinner-border-sm me-1"></span>Conectando con Transbank...
+                <span class="spinner-border spinner-border-sm me-1"></span>
+                <span>Conectando con Transbank...</span>
               } @else {
-                <span>💳</span> Pagar con Webpay Transbank
+                <span class="webpay-icon">💳</span>
+                <span>Pagar con Webpay Transbank</span>
               }
             </button>
           }
         </div>
+
+        <div class="card-footer bg-transparent border-0 p-3 pt-0 text-center">
+          <small class="text-muted extra-small">
+            🔒 Transacción protegida con cifrado SSL de 256 bits.
+          </small>
+        </div>
+
       </div>
     </div>
   </div>
+
 </div>
