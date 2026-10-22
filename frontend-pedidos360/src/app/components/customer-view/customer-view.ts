@@ -24,7 +24,7 @@ export class CustomerViewComponent implements OnInit {
   private ordersService = inject(OrdersService);
   private paymentService = inject(PaymentService);
 
-  // Datos principales de Neon DB
+  // Datos de Neon DB
   products = signal<Product[]>([]);
   orders = signal<ExtendedOrder[]>([]);
 
@@ -42,7 +42,7 @@ export class CustomerViewComponent implements OnInit {
   activeSubTab = signal<'catalog' | 'history'>('catalog');
   searchQuery = signal<string>('');
 
-  // Productos filtrados por búsqueda
+  // Productos filtrados para la tabla
   filteredProducts = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
     return this.products().filter(p => 
@@ -51,10 +51,10 @@ export class CustomerViewComponent implements OnInit {
     );
   });
 
-  // Pedidos filtrados según la empresa ingresada
+  // El filtro SOLO se activa si existe un nombre de empresa ingresado. Si está vacío, retorna array vacío [].
   myCompanyOrders = computed(() => {
     const emp = this.empresaNombre().toLowerCase().trim();
-    if (!emp) return this.orders(); 
+    if (!emp) return []; 
     return this.orders().filter(o => o.cliente.toLowerCase().includes(emp));
   });
 
@@ -100,21 +100,41 @@ export class CustomerViewComponent implements OnInit {
 
   addToCart(product: Product): void {
     if (!this.empresaNombre().trim()) {
-      this.errorMessage.set('⚠️ Por favor, ingresa el nombre de tu empresa arriba antes de agregar productos.');
+      this.errorMessage.set('⚠️ Debe ingresar el nombre de su empresa en el panel superior antes de agregar productos.');
       return;
     }
 
     this.errorMessage.set(null);
-    const currentCart = this.cart();
+    const currentCart = [...this.cart()];
     const existingIndex = currentCart.findIndex(item => item.product.id === product.id);
 
     if (existingIndex > -1) {
       if (currentCart[existingIndex].quantity < product.stock) {
         currentCart[existingIndex].quantity++;
-        this.cart.set([...currentCart]);
+        this.cart.set(currentCart);
+      } else {
+        this.errorMessage.set(`⚠️ Stock máximo alcanzado (${product.stock} un.) para ${product.nombre}.`);
       }
     } else {
-      this.cart.set([...currentCart, { product, quantity: 1 }]);
+      currentCart.push({ product, quantity: 1 });
+      this.cart.set(currentCart);
+    }
+  }
+
+  updateQuantity(productId: number, delta: number): void {
+    const currentCart = [...this.cart()];
+    const index = currentCart.findIndex(item => item.product.id === productId);
+
+    if (index > -1) {
+      const prod = currentCart[index].product;
+      const newQty = currentCart[index].quantity + delta;
+
+      if (newQty <= 0) {
+        currentCart.splice(index, 1);
+      } else if (newQty <= prod.stock) {
+        currentCart[index].quantity = newQty;
+      }
+      this.cart.set(currentCart);
     }
   }
 
@@ -133,7 +153,7 @@ export class CustomerViewComponent implements OnInit {
     this.loading.set(true);
     this.errorMessage.set(null);
 
-    // 1. Descontar stock localmente para actualización inmediata
+    // 1. Descontar stock localmente
     const updatedProducts = [...this.products()];
     this.cart().forEach(cartItem => {
       const prod = updatedProducts.find(p => p.id === cartItem.product.id);
@@ -143,7 +163,7 @@ export class CustomerViewComponent implements OnInit {
     });
     this.products.set(updatedProducts);
 
-    // 2. Crear Pedido en Neon DB
+    // 2. Guardar Pedido en Neon DB
     const firstItem = this.cart()[0];
     const orderPayload: ExtendedOrder = {
       cliente: this.empresaNombre().trim(),
@@ -160,7 +180,7 @@ export class CustomerViewComponent implements OnInit {
         this.lastOrderId.set(createdOrder.id || Math.floor(Math.random() * 1000));
         this.orders.set([createdOrder, ...this.orders()]);
 
-        // 3. Iniciar Pasarela de Pago
+        // 3. Conectar Pasarela Transbank Webpay
         const paymentPayload = {
           orderId: createdOrder.id,
           items: this.cart().map(item => ({
@@ -175,11 +195,11 @@ export class CustomerViewComponent implements OnInit {
           next: (res) => {
             this.loading.set(false);
             this.orderSuccess.set(true);
-            this.cart.set([]); // Vaciar carrito
+            this.cart.set([]);
             if (res && res.url) {
               setTimeout(() => {
                 this.paymentService.redirectToWebpay(res.url, res.token);
-              }, 3000);
+              }, 2500);
             }
           },
           error: () => {
@@ -191,7 +211,7 @@ export class CustomerViewComponent implements OnInit {
       },
       error: (err) => {
         this.loading.set(false);
-        this.errorMessage.set('No se pudo registrar el pedido en la base de datos de Neon.');
+        this.errorMessage.set('Error al registrar la orden en Neon DB.');
         console.error(err);
       }
     });

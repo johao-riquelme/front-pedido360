@@ -1,37 +1,41 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 :host {
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   display: block;
+  background-color: #f8fafc;
+  color: #1e293b;
 }
 
-.fw-extrabold { font-weight: 800; }
-.extra-small { font-size: 0.75rem; }
+.extra-small {
+  font-size: 0.75rem;
+}
 
 .store-wrapper {
-  max-width: 1240px;
+  max-width: 1200px;
   margin: 0 auto;
-  padding: 10px;
 }
 
-/* HEADER & EMPRESA */
-.store-header {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+/* BANNER DE CABECERA CORDPORATIVO (SIN NEGRO) */
+.company-banner-card {
+  background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+  border: 1px solid #e2e8f0 !important;
 }
 
-.company-card {
-  min-width: 280px;
+.company-field:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
-/* SUB TABS */
+/* SUB-TAB NAVEGACIÓN */
 .subtab-btn {
   background-color: #ffffff;
-  border: 1px solid #e2e8f0;
-  color: #64748b;
-  font-weight: 700;
-  padding: 10px 18px;
-  border-radius: 12px;
-  transition: all 0.2s ease;
+  border: 1px solid #cbd5e1;
+  color: #475569;
+  font-weight: 600;
+  padding: 9px 18px;
+  border-radius: 10px;
+  transition: all 0.15s ease;
 }
 
 .subtab-btn.active, .subtab-btn:hover {
@@ -40,62 +44,51 @@
   border-color: #2563eb;
 }
 
-/* TARJETAS DE PRODUCTO */
-.search-input {
-  border-radius: 12px;
-  padding: 12px 16px;
-  border: 1px solid #cbd5e1;
+/* BUSCADOR */
+.search-field {
+  max-width: 280px;
+  border-radius: 8px;
 }
 
-.product-card {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  background: #ffffff;
-  border: 1px solid #f1f5f9 !important;
+/* TABLA FORMAL */
+.table th {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: 700;
+  color: #475569;
 }
 
-.product-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 20px -4px rgba(0, 0, 0, 0.1) !important;
-}
-
-.card-img-placeholder {
-  height: 120px;
-  background: linear-gradient(180deg, #f8fafc 0%, #e2e8f0 100%);
-}
-
-.btn-add {
-  border-radius: 10px;
-  padding: 10px;
-}
-
-/* BANNER ÉXITO */
-.success-banner {
-  background: linear-gradient(135deg, #059669 0%, #047857 100%);
-  animation: fadeIn 0.3s ease-in-out;
+.table td {
+  font-size: 0.9rem;
 }
 
 /* CARRITO */
-.cart-sidebar {
-  border: 1px solid #e2e8f0 !important;
-}
-
-.cart-list {
+.cart-items-list {
   max-height: 260px;
   overflow-y: auto;
 }
 
+/* BOTÓN OFICIAL WEBPAY TRANSBANK */
 .btn-webpay {
-  background-color: #dc2626;
-  border: none;
-  border-radius: 12px;
-  padding: 14px;
+  background-color: #e60023;
+  border-color: #e60023;
+  padding: 12px;
+  font-size: 0.95rem;
+  transition: background-color 0.2s ease, transform 0.1s ease;
 }
 
 .btn-webpay:hover:not(:disabled) {
-  background-color: #b91c1c;
+  background-color: #cc001f;
+  border-color: #cc001f;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+.btn-webpay:disabled {
+  background-color: #fca5a5;
+  border-color: #fca5a5;
+  cursor: not-allowed;
+}
+
+.border-dashed {
+  border-style: dashed !important;
 }

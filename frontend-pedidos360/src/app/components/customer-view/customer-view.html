@@ -1,217 +1,254 @@
-<div class="store-wrapper">
+<div class="store-wrapper my-3">
 
-  <!-- BANNER CABECERA -->
-  <header class="store-header mb-4 p-4 rounded-4 shadow-sm text-white">
-    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
-      <div>
-        <span class="badge bg-primary-subtle text-primary fw-bold px-3 py-2 rounded-pill mb-2">
-          ⚡ Módulo de Compras Cliente
-        </span>
-        <h2 class="fw-extrabold m-0">Portal de Pedidos E-Commerce</h2>
+  <!-- PANEL CORPORATIVO SUPERIOR: INGRESO DE EMPRESA (FONDO LUMINOSO / PROFESIONAL) -->
+  <header class="company-banner-card card border-0 shadow-sm rounded-4 p-4 mb-4">
+    <div class="row align-items-center g-3">
+      <div class="col-lg-6">
+        <div class="d-flex align-items-center gap-2 mb-1">
+          <span class="badge bg-primary-subtle text-primary fw-bold px-3 py-1 rounded-pill extra-small">
+            E-Commerce Corporativo
+          </span>
+        </div>
+        <h3 class="fw-bold text-dark m-0">Portal de Ventas & Pedidos</h3>
+        <p class="text-muted small m-0 mt-1">Gestione sus compras empresariales con actualización de stock en tiempo real.</p>
       </div>
 
-      <!-- SECCIÓN: INGRESO DE EMPRESA / CLIENTE -->
-      <div class="company-card bg-white text-dark p-3 rounded-3 shadow-sm border">
-        <label class="form-label extra-small fw-bold text-uppercase text-muted m-0 mb-1">
-          🏢 Nombre de tu Empresa / Razón Social:
-        </label>
-        <div class="input-group input-group-sm">
-          <span class="input-group-text bg-light border-0">✍️</span>
-          <input 
-            type="text" 
-            class="form-control border-0 bg-light fw-bold text-primary" 
-            placeholder="Ej: DuocUC / TechCorp S.A."
-            [ngModel]="empresaNombre()"
-            (ngModelChange)="empresaNombre.set($event)"
-          />
+      <div class="col-lg-6">
+        <div class="company-input-box p-3 rounded-3 bg-white border border-primary-subtle shadow-sm">
+          <label class="form-label extra-small fw-bold text-uppercase text-primary m-0 mb-1 d-flex align-items-center justify-content-between">
+            <span>🏢 Razón Social / Nombre de la Empresa <span class="text-danger">*</span></span>
+            <span class="text-muted extra-small font-normal">Requerido para comprar</span>
+          </label>
+          <div class="input-group">
+            <span class="input-group-text bg-light border-end-0 text-muted">✍️</span>
+            <input 
+              type="text" 
+              class="form-control fw-bold text-dark border-start-0 bg-light-subtle company-field" 
+              placeholder="Ej: Duoc UC / Tech Solutions Ltd."
+              [ngModel]="empresaNombre()"
+              (ngModelChange)="empresaNombre.set($event)"
+            />
+          </div>
         </div>
       </div>
     </div>
   </header>
 
-  <!-- PESTAÑAS SUB-NAVEGACIÓN -->
-  <div class="d-flex gap-2 mb-4">
+  <!-- PESTAÑAS DE NAVEGACIÓN -->
+  <div class="d-flex gap-2 mb-3">
     <button 
       class="btn subtab-btn" 
       [class.active]="activeSubTab() === 'catalog'" 
       (click)="setSubTab('catalog')">
-      🛒 Catálogo de Productos
+      📦 Catálogo de Productos (Tabla)
     </button>
     <button 
       class="btn subtab-btn" 
       [class.active]="activeSubTab() === 'history'" 
       (click)="setSubTab('history')">
       📋 Mis Pedidos {{ empresaNombre() ? '(' + empresaNombre() + ')' : '' }}
-      <span class="badge bg-secondary ms-1">{{ myCompanyOrders().length }}</span>
+      <span *ngIf="empresaNombre()" class="badge bg-primary ms-1">{{ myCompanyOrders().length }}</span>
     </button>
   </div>
 
   <!-- ALERTA DE ERROR -->
   @if (errorMessage()) {
-    <div class="alert alert-danger shadow-sm border-0 rounded-3 p-3 mb-4 d-flex align-items-center gap-2">
+    <div class="alert alert-danger shadow-sm border-0 rounded-3 p-3 mb-3 d-flex align-items-center gap-2">
       <span class="fs-5">⚠️</span>
       <div class="fw-semibold">{{ errorMessage() }}</div>
     </div>
   }
 
-  <!-- MODAL / MENSAJE DE ÉXITO DE COMPRA -->
+  <!-- BANNER DE ÉXITO TRAS COMPRA -->
   @if (orderSuccess()) {
-    <div class="success-banner p-4 rounded-4 shadow-lg mb-4 text-center text-white">
-      <div class="fs-1 mb-2">🎉</div>
-      <h3 class="fw-extrabold mb-1">¡Compra realizada con éxito!</h3>
-      <p class="m-0 mb-2">
-        El pedido #{{ lastOrderId() }} para la empresa <strong>{{ empresaNombre() }}</strong> fue guardado en Neon DB y el stock se ha actualizado correctamente.
+    <div class="alert alert-success shadow-sm border-0 rounded-4 p-4 mb-4 text-center">
+      <div class="fs-2 mb-1">✅</div>
+      <h4 class="fw-bold text-success mb-1">¡Compra realizada con éxito!</h4>
+      <p class="m-0 text-dark">
+        Su orden <strong>#{{ lastOrderId() }}</strong> para <strong>{{ empresaNombre() }}</strong> fue guardada en Neon DB y el stock de productos ha sido descontado.
       </p>
-      <button class="btn btn-light btn-sm fw-bold px-4 rounded-pill mt-2" (click)="closeSuccessModal()">
-        Aceptar y Continuar
+      <button class="btn btn-success fw-bold px-4 rounded-3 mt-3" (click)="closeSuccessModal()">
+        Aceptar
       </button>
     </div>
   }
 
-  <!-- VISTA 1: CATÁLOGO DE PRODUCTOS -->
+  <!-- VISTA 1: CATÁLOGO DE PRODUCTOS (TABLA FORMAL) -->
   @if (activeSubTab() === 'catalog') {
     <div class="row g-4">
       
-      <!-- GRILLA DE PRODUCTOS -->
+      <!-- TABLA FORMAL DE PRODUCTOS -->
       <div class="col-lg-8">
-        <div class="mb-3">
-          <input 
-            type="text" 
-            class="form-control search-input" 
-            placeholder="🔍 Buscar productos por nombre o categoría..." 
-            [ngModel]="searchQuery()"
-            (ngModelChange)="searchQuery.set($event)"
-          />
-        </div>
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-3">
+          
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold text-dark m-0">Catálogo Institucional</h5>
+            <input 
+              type="text" 
+              class="form-control form-control-sm search-field" 
+              placeholder="🔍 Buscar producto o categoría..." 
+              [ngModel]="searchQuery()"
+              (ngModelChange)="searchQuery.set($event)"
+            />
+          </div>
 
-        <div class="row row-cols-1 row-cols-sm-2 row-cols-md-3 g-3">
-          @for (product of filteredProducts(); track product.id) {
-            <div class="col">
-              <div class="card h-100 border-0 product-card shadow-sm rounded-4 overflow-hidden position-relative">
-                
-                <!-- BADGE STOCK -->
-                <div class="position-absolute top-0 end-0 m-2 z-1">
-                  <span class="badge rounded-pill shadow-sm" [ngClass]="product.stock > 0 ? 'bg-success' : 'bg-danger'">
-                    Stock: {{ product.stock }}
-                  </span>
-                </div>
+          <div class="table-responsive">
+            <table class="table table-hover align-middle border-top m-0">
+              <thead class="table-light">
+                <tr>
+                  <th style="width: 70px;">ID</th>
+                  <th>Producto</th>
+                  <th>Categoría</th>
+                  <th class="text-end">Precio Unit.</th>
+                  <th class="text-center">Stock DB</th>
+                  <th class="text-center" style="width: 130px;">Acción</th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (product of filteredProducts(); track product.id) {
+                  <tr>
+                    <td class="fw-bold text-muted">#{{ product.id }}</td>
+                    <td>
+                      <strong class="text-dark">{{ product.nombre }}</strong>
+                    </td>
+                    <td>
+                      <span class="badge bg-light text-secondary border">
+                        {{ product.categoria || 'General' }}
+                      </span>
+                    </td>
+                    <td class="text-end fw-bold text-primary">
+                      ${{ product.precio | number:'1.0-0' }}
+                    </td>
+                    <td class="text-center">
+                      <span class="badge" [ngClass]="product.stock > 0 ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle'">
+                        {{ product.stock > 0 ? product.stock + ' un.' : 'Agotado' }}
+                      </span>
+                    </td>
+                    <td class="text-center">
+                      <button 
+                        class="btn btn-sm btn-primary fw-bold w-100 rounded-2" 
+                        [disabled]="product.stock <= 0"
+                        (click)="addToCart(product)">
+                        🛒 Agregar
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
 
-                <div class="card-img-placeholder d-flex align-items-center justify-content-center">
-                  <span class="display-6">📦</span>
-                </div>
-
-                <div class="card-body p-3 d-flex flex-column">
-                  <small class="text-muted text-uppercase fw-bold extra-small mb-1">{{ product.categoria || 'General' }}</small>
-                  <h5 class="card-title fw-bold text-dark mb-2 text-truncate">{{ product.nombre }}</h5>
-                  
-                  <div class="mt-auto pt-2">
-                    <div class="d-flex justify-content-between align-items-baseline mb-2">
-                      <span class="text-muted small">Precio:</span>
-                      <span class="fs-5 fw-extrabold text-primary">${{ product.precio | number:'1.0-0' }}</span>
-                    </div>
-
-                    <button 
-                      class="btn btn-primary w-100 fw-bold btn-add shadow-sm" 
-                      [disabled]="product.stock <= 0"
-                      (click)="addToCart(product)">
-                      {{ product.stock > 0 ? '🛒 Agregar al Carrito' : 'Agotado' }}
-                    </button>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          }
         </div>
       </div>
 
-      <!-- CARRITO Y CHECKOUT -->
+      <!-- CARRITO LATERAL -->
       <div class="col-lg-4">
-        <div class="card border-0 shadow-sm rounded-4 sticky-top cart-sidebar" style="top: 20px;">
-          <div class="card-header bg-dark text-white p-3 d-flex justify-content-between align-items-center rounded-top-4">
-            <h5 class="m-0 fw-bold fs-6">🛒 Resumen del Pedido</h5>
-            <span class="badge bg-primary">{{ totalItemsCount() }} items</span>
+        <div class="card border-0 shadow-sm rounded-4 bg-white sticky-top" style="top: 20px;">
+          
+          <div class="card-header bg-primary text-white p-3 d-flex justify-content-between align-items-center rounded-top-4">
+            <h6 class="m-0 fw-bold">🛒 Resumen de Compra</h6>
+            <span class="badge bg-white text-primary fw-bold">{{ totalItemsCount() }} ítems</span>
           </div>
 
           <div class="card-body p-3">
             @if (cart().length === 0) {
               <div class="text-center py-4 text-muted">
-                <div class="fs-1 mb-2">🛍️</div>
-                <p class="fw-bold m-0 text-dark">El carrito está vacío</p>
-                <small>Selecciona productos para comenzar.</small>
+                <div class="fs-2 mb-1">🛍️</div>
+                <p class="fw-bold text-dark m-0">El carrito está vacío</p>
+                <small>Seleccione productos de la tabla para comprar.</small>
               </div>
             } @else {
-              <div class="cart-list mb-3">
+              
+              <div class="cart-items-list mb-3">
                 @for (item of cart(); track item.product.id) {
-                  <div class="d-flex justify-content-between align-items-center p-2 mb-2 bg-light rounded-3">
-                    <div class="pe-2">
-                      <strong class="text-dark d-block small text-truncate">{{ item.product.nombre }}</strong>
-                      <small class="text-muted">{{ item.quantity }} x ${{ item.product.precio | number:'1.0-0' }}</small>
+                  <div class="p-2 mb-2 bg-light rounded-3 border d-flex align-items-center justify-content-between">
+                    <div>
+                      <strong class="d-block text-dark small">{{ item.product.nombre }}</strong>
+                      <span class="text-muted extra-small">${{ item.product.precio | number:'1.0-0' }} c/u</span>
                     </div>
-                    <div class="d-flex align-items-center gap-2">
-                      <span class="fw-bold text-dark">${{ (item.quantity * item.product.precio) | number:'1.0-0' }}</span>
-                      <button class="btn btn-sm text-danger border-0 p-0" (click)="removeFromCart(item.product.id)">🗑️</button>
+
+                    <div class="d-flex align-items-center gap-1">
+                      <button class="btn btn-sm btn-outline-secondary px-2 py-0" (click)="updateQuantity(item.product.id, -1)">-</button>
+                      <span class="fw-bold px-1 small">{{ item.quantity }}</span>
+                      <button class="btn btn-sm btn-outline-secondary px-2 py-0" (click)="updateQuantity(item.product.id, 1)">+</button>
+                      
+                      <button class="btn btn-sm text-danger border-0 ms-1 p-0" (click)="removeFromCart(item.product.id)">🗑️</button>
                     </div>
                   </div>
                 }
               </div>
 
-              <!-- INFO EMPRESA RECEPTORA -->
-              <div class="p-2 mb-3 bg-primary-subtle rounded-3 border border-primary-subtle">
-                <small class="d-block text-muted extra-small">Empresa compradora:</small>
-                <strong class="text-primary">{{ empresaNombre() || '⚠️ No especificada' }}</strong>
+              <div class="p-2 mb-3 bg-light rounded-3 border">
+                <small class="text-muted extra-small d-block">Empresa asociada:</small>
+                <strong class="text-primary">{{ empresaNombre() || '⚠️ Ingrese su empresa arriba' }}</strong>
               </div>
 
               <div class="d-flex justify-content-between align-items-center pt-2 mb-3 border-top">
-                <span class="fs-6 fw-bold text-dark">Total a Pagar:</span>
-                <span class="fs-4 fw-extrabold text-success">${{ totalAmount() | number:'1.0-0' }}</span>
+                <span class="fw-bold text-dark">Total a Pagar:</span>
+                <span class="fs-4 fw-bold text-success">${{ totalAmount() | number:'1.0-0' }}</span>
               </div>
 
+              <!-- BOTÓN TRANSBANK WEBPAY -->
               <button 
-                class="btn btn-danger btn-lg w-100 fw-bold shadow btn-webpay" 
+                class="btn btn-danger btn-lg w-100 fw-bold shadow-sm btn-webpay rounded-3" 
                 [disabled]="loading() || cart().length === 0"
                 (click)="payWithWebpay()">
                 @if (loading()) {
-                  <span class="spinner-border spinner-border-sm me-2"></span>Guardando y Conectando...
+                  <span class="spinner-border spinner-border-sm me-2"></span>Procesando...
                 } @else {
                   💳 Pagar con Webpay Transbank
                 }
               </button>
             }
           </div>
+
         </div>
       </div>
 
     </div>
   }
 
-  <!-- VISTA 2: MIS PEDIDOS / HISTORIAL FILTRADO EN NEON DB -->
+  <!-- VISTA 2: MIS PEDIDOS (ACTIVADO SOLO AL INGRESAR LA EMPRESA) -->
   @if (activeSubTab() === 'history') {
     <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
-      <div class="d-flex justify-content-between align-items-center mb-4">
+      
+      <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-          <h4 class="fw-bold text-dark m-0">Historial de Pedidos de la Empresa</h4>
+          <h5 class="fw-bold text-dark m-0">Historial de Compras de la Empresa</h5>
           <p class="text-muted small m-0">
-            Mostrando compras asociadas a: <strong class="text-primary">{{ empresaNombre() || 'Todas las Empresas' }}</strong>
+            Consultando registros en Neon DB para: 
+            <strong class="text-primary">{{ empresaNombre() || 'Ninguna empresa ingresada' }}</strong>
           </p>
         </div>
-        <button class="btn btn-sm btn-outline-primary fw-bold" (click)="loadOrders()">🔄 Recargar DB</button>
+        <button *ngIf="empresaNombre()" class="btn btn-sm btn-outline-primary fw-bold" (click)="loadOrders()">🔄 Recargar</button>
       </div>
 
-      @if (myCompanyOrders().length === 0) {
-        <div class="text-center py-5 text-muted">
-          <div class="fs-1 mb-2">📋</div>
-          <p class="fw-bold text-dark m-0">No hay pedidos registrados para esta empresa en Neon DB.</p>
+      <!-- SI NO SE HA INGRESADO LA EMPRESA -->
+      @if (!empresaNombre().trim()) {
+        <div class="text-center py-5 bg-light rounded-4 border border-dashed my-3">
+          <div class="fs-1 mb-2">🏢</div>
+          <h6 class="fw-bold text-dark mb-1">Ingrese el nombre de su empresa para ver sus pedidos</h6>
+          <p class="text-muted small m-0">Escriba la Razón Social en el campo superior para filtrar los registros guardados en la base de datos.</p>
         </div>
-      } @else {
+      } 
+      <!-- SI SE INGRESÓ LA EMPRESA PERO NO TIENE PEDIDOS REGISTRADOS -->
+      @else if (myCompanyOrders().length === 0) {
+        <div class="text-center py-5 text-muted">
+          <div class="fs-2 mb-1">📄</div>
+          <p class="fw-bold text-dark m-0">No se encontraron pedidos guardados para "{{ empresaNombre() }}" en Neon DB.</p>
+          <small>Realice una compra desde el catálogo para visualizarla aquí.</small>
+        </div>
+      } 
+      <!-- SI SE INGRESÓ LA EMPRESA Y TIENE PEDIDOS -->
+      @else {
         <div class="table-responsive">
-          <table class="table table-hover align-middle border">
-            <thead class="table-dark">
+          <table class="table table-hover align-middle border-top m-0">
+            <thead class="table-light">
               <tr>
-                <th>ID Pedido</th>
+                <th>ID Orden</th>
                 <th>Empresa / Cliente</th>
                 <th>Fecha</th>
-                <th>Detalle Producto</th>
+                <th>Producto / Detalle</th>
                 <th>Estado</th>
                 <th class="text-end">Monto Total</th>
               </tr>
@@ -220,9 +257,7 @@
               @for (order of myCompanyOrders(); track order.id) {
                 <tr>
                   <td class="fw-bold text-secondary">#{{ order.id }}</td>
-                  <td>
-                    <strong class="text-dark">{{ order.cliente }}</strong>
-                  </td>
+                  <td><strong class="text-dark">{{ order.cliente }}</strong></td>
                   <td class="text-muted small">📅 {{ order.fecha || 'Reciente' }}</td>
                   <td>
                     <span class="badge bg-light text-dark border">
@@ -234,17 +269,17 @@
                   </td>
                   <td>
                     <span class="badge" [ngClass]="{
-                      'bg-warning text-dark': order.estado === 'CREADO',
-                      'bg-info text-dark': order.estado === 'ACEPTADO',
-                      'bg-primary': order.estado === 'EN_PREPARACIÓN',
-                      'bg-secondary': order.estado === 'DESPACHADO',
-                      'bg-success': order.estado === 'ENTREGADO',
-                      'bg-danger': order.estado === 'CANCELADO'
+                      'bg-warning-subtle text-warning-emphasis border border-warning-subtle': order.estado === 'CREADO',
+                      'bg-info-subtle text-info-emphasis border border-info-subtle': order.estado === 'ACEPTADO',
+                      'bg-primary-subtle text-primary border border-primary-subtle': order.estado === 'EN_PREPARACIÓN',
+                      'bg-secondary-subtle text-secondary border border-secondary-subtle': order.estado === 'DESPACHADO',
+                      'bg-success-subtle text-success border border-success-subtle': order.estado === 'ENTREGADO',
+                      'bg-danger-subtle text-danger border border-danger-subtle': order.estado === 'CANCELADO'
                     }">
                       {{ order.estado }}
                     </span>
                   </td>
-                  <td class="text-end fw-extrabold text-success fs-6">
+                  <td class="text-end fw-bold text-success fs-6">
                     ${{ order.monto | number:'1.0-0' }}
                   </td>
                 </tr>
@@ -253,6 +288,7 @@
           </table>
         </div>
       }
+
     </div>
   }
 
