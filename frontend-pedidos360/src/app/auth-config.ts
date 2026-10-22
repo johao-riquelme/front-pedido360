@@ -13,7 +13,7 @@ export const msalConfig: Configuration = {
   auth: {
     clientId: 'a17cda30-9d3b-4af4-8bfe-75e8ad13aa24',
     authority: 'https://login.microsoftonline.com/fd7c1051-f107-4307-a49d-b7901ba3e873',
-    redirectUri: 'https://34.207.115.35.sslip.io'
+    redirectUri: 'https://54.80.182.93.sslip.io'
   },
   cache: {
     cacheLocation: 'localStorage'
