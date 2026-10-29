@@ -1,64 +1,31 @@
 <div class="admin-style-customer-wrapper">
 
-  <!-- ENCABEZADO INTEGRADO (DARK SLATE ADMIN STYLE) -->
-  <header class="admin-header-bar px-4 py-3">
-    <div class="container-fluid px-0 d-flex flex-wrap align-items-center justify-content-between gap-3">
-      
-      <!-- IZQUIERDA: TÍTULO "Pedidos 360", CAMPO EMPRESA AL LADO Y PESTAÑAS JUSTO ABAJO -->
-      <div class="d-flex flex-column gap-2">
-        
-        <!-- FILA 1: NOMBRE PÁGINA + INPUT EMPRESA -->
-        <div class="d-flex align-items-center flex-wrap gap-3">
-          <h3 class="brand-title m-0">Pedidos 360</h3>
-
-          <div class="company-input-container d-flex align-items-center gap-2 ms-2">
-            <span class="text-white-50 extra-small fw-bold text-uppercase">🏢 Empresa / Razón Social <span class="text-danger">*</span>:</span>
-            <input 
-              type="text" 
-              class="form-control form-control-sm company-header-input rounded-3" 
-              placeholder="Ej: Duoc UC / Comercial Beta S.A."
-              [ngModel]="empresaNombre()"
-              (ngModelChange)="empresaNombre.set($event)"
-            />
-          </div>
+  <!-- Navegación secundaria integrada VISUALMENTE con el encabezado global de app.html. -->
+  <!-- No repetimos "Pedidos 360" ni "Cerrar sesión", porque ya están en el encabezado global. -->
+  <nav class="customer-nav-bar" aria-label="Navegación de cliente">
+    <div class="customer-nav-content">
+      <div class="customer-nav-left">
+        <button type="button" class="customer-nav-link" [class.active]="activeSubTab() === 'catalog'"
+                (click)="setSubTab('catalog')">📦 Catálogo</button>
+        <button type="button" class="customer-nav-link" [class.active]="activeSubTab() === 'history'"
+                (click)="setSubTab('history')">📋 Mis Pedidos</button>
+        <div class="customer-company" aria-live="polite">
+          <span class="company-label">🏢 Empresa:</span>
+          <strong class="company-value">{{ empresaNombre() || 'Sin seleccionar' }}</strong>
+          @if (empresaNombre()) {
+            <button type="button" class="change-company-btn"
+                    [disabled]="cart().length > 0 || loading() || paymentPending()"
+                    [title]="cart().length ? 'Vacía el carrito para cambiar de empresa' : 'Seleccionar otra empresa'"
+                    (click)="requestCompanyChange()">Cambiar empresa</button>
+          }
         </div>
-
-        <!-- FILA 2: PESTAÑAS DE NAVEGACIÓN DEBAJO DEL TÍTULO -->
-        <nav class="d-flex align-items-center gap-2 mt-1">
-          <button 
-            class="admin-nav-tab" 
-            [class.active]="activeSubTab() === 'catalog'"
-            (click)="setSubTab('catalog')">
-            📦 Catálogo
-          </button>
-
-          <button 
-            class="admin-nav-tab position-relative" 
-            [class.active]="activeSubTab() === 'cart'"
-            (click)="setSubTab('cart')">
-            🛒 Carrito
-            <span *ngIf="totalItemsCount() > 0" class="badge rounded-pill bg-danger ms-1">
-              {{ totalItemsCount() }}
-            </span>
-          </button>
-
-          <button 
-            class="admin-nav-tab" 
-            [class.active]="activeSubTab() === 'history'"
-            (click)="setSubTab('history')">
-            📋 Mis Pedidos {{ empresaNombre() ? '(' + myCompanyOrders().length + ')' : '' }}
-          </button>
-        </nav>
-
       </div>
-
-      <!-- DERECHA: INDICADOR EMPRESA ACTIVA -->
-      <div class="d-flex align-items-center gap-2 text-white-50 extra-small">
-        <span *ngIf="empresaNombre()">Empresa Activa: <strong class="text-white fs-6 ms-1">{{ empresaNombre() }}</strong></span>
-      </div>
-
+      <button type="button" class="customer-nav-link nav-cart" [class.active]="activeSubTab() === 'cart'"
+              (click)="setSubTab('cart')">
+        🛒 Carrito <span class="cart-counter">{{ totalItemsCount() }}</span>
+      </button>
     </div>
-  </header>
+  </nav>
 
   <!-- CONTENIDO EXPANDIDO A PANTALLA COMPLETA (100% ANCHO) -->
   <main class="full-screen-container px-4 py-4">
@@ -71,13 +38,20 @@
       </div>
     }
 
+    @if (paymentNotice()) {
+      <div class="alert alert-warning d-flex flex-wrap align-items-center justify-content-between gap-2" role="status">
+        <span>⏳ {{ paymentNotice() }}</span>
+        <button type="button" class="btn btn-sm btn-outline-dark" (click)="loadOrders()">🔄 Sincronizar DB</button>
+      </div>
+    }
+
     <!-- BANNER ÉXITO WEBPAY -->
     @if (orderSuccess()) {
       <div class="alert alert-success shadow-sm border-0 rounded-4 p-4 mb-4 text-center">
         <div class="fs-1 mb-2">🎉</div>
         <h4 class="fw-bold text-success mb-1">¡Pago Procesado con Éxito!</h4>
         <p class="m-0 text-dark">
-          Su orden para <strong>{{ empresaNombre() }}</strong> fue registrada correctamente en Neon DB mediante Webpay Transbank.
+          La orden de <strong>{{ empresaNombre() }}</strong> figura pagada en los registros del servidor.
         </p>
         <button class="btn btn-success fw-bold px-4 rounded-3 mt-3 shadow-sm" (click)="closeSuccessModal()">
           Aceptar y Ver Historial
@@ -95,14 +69,16 @@
             <h4 class="fw-extrabold text-dark m-0">Catálogo Tecnológico e Insumos</h4>
             <span class="text-muted extra-small">Seleccione los productos para agregarlos al carrito corporativo</span>
           </div>
-          <div class="search-box-wrapper">
-            <input 
-              type="text" 
-              class="form-control form-control-sm search-input-lg rounded-3" 
-              placeholder="🔍 Buscar por nombre o categoría..." 
-              [ngModel]="searchQuery()"
-              (ngModelChange)="searchQuery.set($event)"
-            />
+          <div class="search-and-filter">
+            <input type="search" class="form-control search-input-lg rounded-3"
+                   placeholder="🔍 Buscar por nombre o categoría..."
+                   aria-label="Buscar productos"
+                   [ngModel]="searchQuery()" (ngModelChange)="searchQuery.set($event)" />
+            <select class="form-select category-select" aria-label="Filtrar por categoría"
+                    [ngModel]="selectedCategory()" (ngModelChange)="selectedCategory.set($event)">
+              <option value="">Todas las categorías</option>
+              @for (cat of categories(); track cat) { <option [value]="cat">{{ cat }}</option> }
+            </select>
           </div>
         </div>
 
@@ -111,13 +87,6 @@
           @for (product of filteredProducts(); track product.id) {
             <div class="product-card bg-white rounded-4 shadow-sm border d-flex flex-column justify-content-between overflow-hidden position-relative">
               
-              <!-- BADGE DE STOCK -->
-              <div class="stock-pill-badge position-absolute top-0 end-0 m-2 z-2">
-                <span class="badge rounded-3" [ngClass]="product.stock > 0 ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle'">
-                  {{ product.stock > 0 ? product.stock + ' Unid.' : 'Agotado' }}
-                </span>
-              </div>
-
               <!-- CONTENEDOR FOTO QUE OCUPA TODO EL ESPACIO SUPERIOR CENTRADO -->
               <div class="product-img-box w-100 overflow-hidden bg-light">
                 <img 
@@ -146,17 +115,23 @@
 
                 <!-- PRECIO Y BOTÓN DE AGREGAR MÁS GRANDE Y REDONDEADO -->
                 <div class="pt-2 border-top mt-auto">
-                  <div class="d-flex justify-content-between align-items-baseline mb-3">
+                  <div class="d-flex justify-content-between align-items-baseline mb-3 gap-2">
                     <span class="text-muted extra-small fw-bold">Precio Neto:</span>
                     <span class="fw-extrabold text-dark fs-4">${{ product.precio | number:'1.0-0' }}</span>
                   </div>
 
-                  <button 
-                    class="btn btn-primary w-100 fw-bold py-2 fs-6 rounded-3 btn-add-cart-lg shadow-sm" 
-                    [disabled]="product.stock <= 0"
-                    (click)="addToCart(product)">
-                    🛒 Agregar al carro
-                  </button>
+                  <!-- Stock DEBAJO de la foto, nunca superpuesto sobre ella. -->
+                  <div class="product-purchase-row">
+                    <div class="stock-available" [class.out-of-stock]="product.stock <= 0">
+                      <span class="stock-icon">📦</span>
+                      <span><strong>{{ product.stock > 0 ? (product.stock + ' Unid.') : 'Agotado' }}</strong>
+                        <small>{{ product.stock > 0 ? 'Disponibles' : 'Sin existencias' }}</small>
+                      </span>
+                    </div>
+                    <button type="button" class="btn btn-primary fw-bold btn-add-cart-lg"
+                            [disabled]="product.stock <= 0 || loading() || paymentPending()"
+                            (click)="addToCart(product)">🛒 Agregar al carrito</button>
+                  </div>
                 </div>
               </div>
 
@@ -219,16 +194,16 @@
                           </td>
                           <td class="text-center">
                             <div class="d-inline-flex align-items-center gap-2 bg-light p-1 rounded-3 border">
-                              <button class="btn btn-sm btn-white border px-2 py-0 fw-bold rounded-2" (click)="updateQuantity(item.product.id, -1)">-</button>
+                              <button class="btn btn-sm btn-white border px-2 py-0 fw-bold rounded-2" [disabled]="loading() || paymentPending()" (click)="updateQuantity(item.product.id, -1)">-</button>
                               <span class="fw-bold px-2">{{ item.quantity }}</span>
-                              <button class="btn btn-sm btn-white border px-2 py-0 fw-bold rounded-2" (click)="updateQuantity(item.product.id, 1)">+</button>
+                              <button class="btn btn-sm btn-white border px-2 py-0 fw-bold rounded-2" [disabled]="loading() || paymentPending()" (click)="updateQuantity(item.product.id, 1)">+</button>
                             </div>
                           </td>
                           <td class="text-end fw-extrabold text-primary fs-6">
                             ${{ (item.product.precio * item.quantity) | number:'1.0-0' }}
                           </td>
                           <td class="text-center">
-                            <button class="btn btn-sm btn-outline-danger border-0 rounded-2" (click)="removeFromCart(item.product.id)">
+                            <button class="btn btn-sm btn-outline-danger border-0 rounded-2" [disabled]="loading() || paymentPending()" (click)="removeFromCart(item.product.id)">
                               🗑️
                             </button>
                           </td>
@@ -264,12 +239,12 @@
 
               <button 
                 class="btn btn-danger btn-lg w-100 fw-bold py-3 shadow btn-webpay-official rounded-3" 
-                [disabled]="loading() || cart().length === 0"
+                [disabled]="loading() || paymentPending() || cart().length === 0"
                 (click)="payWithWebpay()">
                 @if (loading()) {
                   <span class="spinner-border spinner-border-sm me-2"></span>Conectando con Transbank...
                 } @else {
-                  💳 Confirmar y Pagar con Webpay
+                  {{ paymentPending() ? '⏳ Verificar pago pendiente' : '💳 Confirmar y Pagar con Webpay' }}
                 }
               </button>
 
@@ -302,8 +277,8 @@
         @if (!empresaNombre().trim()) {
           <div class="text-center py-5 bg-light rounded-4 border border-dashed my-3">
             <div class="fs-1 mb-2">🏢</div>
-            <h6 class="fw-bold text-dark mb-1">Ingrese su Empresa en la barra superior</h6>
-            <p class="text-muted small m-0">Los pedidos registrados en Neon DB se filtran por la Razón Social ingresada.</p>
+            <h6 class="fw-bold text-dark mb-1">Selecciona una empresa al agregar un producto</h6>
+            <p class="text-muted small m-0">Al agregar tu primer producto se solicitará la razón social. También podrás cambiarla cuando el carrito esté vacío.</p>
           </div>
         } 
         @else if (myCompanyOrders().length === 0) {
@@ -362,4 +337,52 @@
     }
 
   </main>
+
+
+  <!-- Ventana para elegir o cambiar la empresa. No depende de estilos Bootstrap. -->
+  @if (showCompanyModal()) {
+    <div class="company-modal-overlay" role="presentation" (click)="cancelCompanyModal()">
+      <section class="company-modal" role="dialog" aria-modal="true"
+               aria-labelledby="company-modal-heading" aria-describedby="company-modal-description"
+               (click)="$event.stopPropagation()">
+        <div class="company-modal-top">
+          <div class="company-modal-icon" aria-hidden="true">🏢</div>
+          <button type="button" class="company-modal-close" aria-label="Cerrar ventana"
+                  (click)="cancelCompanyModal()">×</button>
+        </div>
+
+        <h2 id="company-modal-heading" class="company-modal-title">
+          {{ pendingProduct() ? '¿A nombre de qué empresa comprarás?' : 'Cambiar empresa' }}
+        </h2>
+        <p id="company-modal-description" class="company-modal-description">
+          {{ pendingProduct()
+            ? 'Ingresa la razón social una sola vez. La recordaremos para tus próximos pedidos.'
+            : 'Selecciona la empresa que utilizarás en tus próximos pedidos.' }}
+        </p>
+
+        <form class="company-modal-form" (ngSubmit)="confirmCompany()">
+          <label for="companyNameInput" class="company-modal-label">Empresa o razón social <span aria-hidden="true">*</span></label>
+          <input id="companyNameInput" name="companyNameInput" class="company-modal-input"
+                 type="text" required minlength="2" maxlength="120"
+                 autocomplete="organization" placeholder="Ej.: Duoc UC / Comercial Beta S.A."
+                 aria-describedby="company-modal-helper"
+                 [attr.aria-invalid]="companyModalError() ? 'true' : null"
+                 [ngModel]="companyDraft()" (ngModelChange)="companyDraft.set($event)" />
+          <p id="company-modal-helper" class="company-modal-helper">Este nombre aparecerá en el resumen y el historial de tus compras.</p>
+          @if (companyModalError()) {
+            <p class="company-modal-error" role="alert">⚠️ {{ companyModalError() }}</p>
+          }
+
+          <div class="company-modal-actions">
+            <button type="button" class="company-modal-cancel"
+                    (click)="cancelCompanyModal()">Cancelar</button>
+            <button type="submit" class="company-modal-submit">
+              {{ pendingProduct() ? 'Guardar y agregar al carrito' : 'Guardar empresa' }}
+            </button>
+          </div>
+        </form>
+        <div class="company-modal-footer">🔒 Puedes cambiar la empresa más adelante cuando tu carrito esté vacío.</div>
+      </section>
+    </div>
+  }
 </div>

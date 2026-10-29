@@ -1,1 +1,20 @@
 /* You can add global styles to this file, and also import other style files */
+/* PEDIDOS360: colocar AL FINAL de src/styles.css (archivo GLOBAL) */
+/* Corrige el margen de 8px que se observa en el encabezado principal. */
+html, body {
+  margin: 0 !important;
+  padding: 0 !important;
+  min-height: 100%;
+  width: 100%;
+}
+
+body {
+  overflow-x: clip;
+}
+
+app-root {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
