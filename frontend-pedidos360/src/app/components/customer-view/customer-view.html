@@ -1,6 +1,6 @@
 <div class="store-wrapper my-3">
 
-  <!-- HERO BANNER VISUAL CON IMAGEN CORPORATIVA Y DATOS DE LA EMPRESA -->
+  <!-- HERO BANNER VISUAL -->
   <header class="hero-banner card border-0 shadow-sm rounded-4 mb-4 overflow-hidden position-relative">
     <div class="hero-bg-overlay"></div>
     <div class="card-body p-4 p-md-5 position-relative z-1 text-white">
@@ -16,7 +16,6 @@
           </p>
         </div>
 
-        <!-- INPUT DE EMPRESA CON TARJETA DE ESTILO -->
         <div class="col-lg-5">
           <div class="company-card bg-white text-dark p-3 rounded-4 shadow-lg border-0">
             <label class="form-label extra-small fw-bold text-uppercase text-primary m-0 mb-2 d-flex align-items-center justify-content-between">
@@ -40,7 +39,7 @@
     </div>
   </header>
 
-  <!-- PESTAÑAS NAVEGACIÓN WEB -->
+  <!-- PESTAÑAS NAVEGACIÓN -->
   <div class="d-flex gap-2 mb-4">
     <button 
       class="btn subtab-btn" 
@@ -57,7 +56,6 @@
     </button>
   </div>
 
-  <!-- ALERTA DE ERROR -->
   @if (errorMessage()) {
     <div class="alert alert-danger shadow-sm border-0 rounded-3 p-3 mb-4 d-flex align-items-center gap-2">
       <span class="fs-5">⚠️</span>
@@ -65,7 +63,6 @@
     </div>
   }
 
-  <!-- BANNER DE ÉXITO PAGO TRANSBANK -->
   @if (orderSuccess()) {
     <div class="alert alert-success shadow-sm border-0 rounded-4 p-4 mb-4 text-center success-box">
       <div class="fs-1 mb-2">🎉</div>
@@ -80,11 +77,10 @@
     </div>
   }
 
-  <!-- VISTA 1: CATÁLOGO DE PRODUCTOS EN TABLA CON IMÁGENES -->
+  <!-- VISTA 1: CATÁLOGO -->
   @if (activeSubTab() === 'catalog') {
     <div class="row g-4">
       
-      <!-- TABLA FORMAL CON MINIANUTURAS -->
       <div class="col-lg-8">
         <div class="card border-0 shadow-sm rounded-4 bg-white p-3 p-md-4">
           
@@ -116,10 +112,9 @@
               <tbody>
                 @for (product of filteredProducts(); track product.id) {
                   <tr>
-                    <!-- IMAGEN DEL PRODUCTO -->
                     <td>
                       <img 
-                        [src]="product.imagenUrl || defaultProductImg" 
+                        [src]="getProductImage(product)" 
                         [alt]="product.nombre"
                         class="product-thumb rounded-3 shadow-sm"
                         onerror="this.src='https://images.unsplash.com/photo-1581235720704-06d3acfcb36f?w=150&auto=format&fit=crop&q=80'"
@@ -159,7 +154,7 @@
         </div>
       </div>
 
-      <!-- CARRITO LATERAL DE COMPRA -->
+      <!-- CARRITO LATERAL -->
       <div class="col-lg-4">
         <div class="card border-0 shadow-sm rounded-4 bg-white sticky-top" style="top: 20px;">
           
@@ -181,7 +176,7 @@
                 @for (item of cart(); track item.product.id) {
                   <div class="p-2 mb-2 bg-light rounded-3 border d-flex align-items-center justify-content-between gap-2">
                     <img 
-                      [src]="item.product.imagenUrl || defaultProductImg" 
+                      [src]="getProductImage(item.product)" 
                       class="cart-thumb rounded-2"
                       alt="Thumbnail"
                     />
@@ -211,7 +206,6 @@
                 <span class="fs-4 fw-extrabold text-success">${{ totalAmount() | number:'1.0-0' }}</span>
               </div>
 
-              <!-- BOTÓN OFICIAL TRANSBANK WEBPAY CON ICONO Y ESTILOS -->
               <button 
                 class="btn btn-danger btn-lg w-100 fw-bold shadow-sm btn-webpay rounded-3 d-flex align-items-center justify-content-center gap-2" 
                 [disabled]="loading() || cart().length === 0"
@@ -236,7 +230,7 @@
     </div>
   }
 
-  <!-- VISTA 2: HISTORIAL FILTRADO EN NEON DB -->
+  <!-- VISTA 2: HISTORIAL -->
   @if (activeSubTab() === 'history') {
     <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
       

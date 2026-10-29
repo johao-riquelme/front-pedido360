@@ -2,13 +2,17 @@ import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Product } from '../../models/product.model';
-import { CartItem } from '../../models/cart.model';
 import { Order } from '../../models/order.model';
 import { OrdersService } from '../../services/orders.service';
 import { PaymentService } from '../../services/payment.service';
 
 export interface ExtendedProduct extends Product {
   imagenUrl?: string;
+}
+
+export interface ExtendedCartItem {
+  product: ExtendedProduct;
+  quantity: number;
 }
 
 export interface ExtendedOrder extends Order {
@@ -34,7 +38,7 @@ export class CustomerViewComponent implements OnInit {
   products = signal<ExtendedProduct[]>([]);
   orders = signal<ExtendedOrder[]>([]);
   empresaNombre = signal<string>('');
-  cart = signal<CartItem[]>([]);
+  cart = signal<ExtendedCartItem[]>([]);
   loading = signal<boolean>(false);
   errorMessage = signal<string | null>(null);
   orderSuccess = signal<boolean>(false);
@@ -44,6 +48,11 @@ export class CustomerViewComponent implements OnInit {
   searchQuery = signal<string>('');
 
   defaultProductImg = 'https://images.unsplash.com/photo-1581235720704-06d3acfcb36f?w=150&auto=format&fit=crop&q=80';
+
+  // Helper para resolver la imagen sin errores de tipos en la plantilla HTML
+  getProductImage(product: any): string {
+    return product?.imagenUrl || this.defaultProductImg;
+  }
 
   filteredProducts = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
