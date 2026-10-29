@@ -1,318 +1,365 @@
-<div class="store-wrapper my-3">
+<div class="admin-style-customer-wrapper">
 
-  <!-- HERO BANNER VISUAL -->
-  <header class="hero-banner card border-0 shadow-sm rounded-4 mb-4 overflow-hidden position-relative">
-    <div class="hero-bg-overlay"></div>
-    <div class="card-body p-4 p-md-5 position-relative z-1 text-white">
-      <div class="row align-items-center g-4">
+  <!-- ENCABEZADO INTEGRADO (DARK SLATE ADMIN STYLE) -->
+  <header class="admin-header-bar px-4 py-3">
+    <div class="container-fluid px-0 d-flex flex-wrap align-items-center justify-content-between gap-3">
+      
+      <!-- IZQUIERDA: TÍTULO "Pedidos 360", CAMPO EMPRESA AL LADO Y PESTAÑAS JUSTO ABAJO -->
+      <div class="d-flex flex-column gap-2">
         
-        <div class="col-lg-7">
-          <span class="badge bg-white text-primary fw-bold px-3 py-2 rounded-pill shadow-sm mb-2 extra-small">
-            🌐 Portal Oficial de Ventas B2B
-          </span>
-          <h2 class="fw-extrabold m-0 text-white display-6">Pedidos 360 Corporate</h2>
-          <p class="text-white-50 small m-0 mt-2">
-            Catálogo institucional conectado a Neon DB con actualización de stock e integración Transbank Webpay.
-          </p>
-        </div>
+        <!-- FILA 1: NOMBRE PÁGINA + INPUT EMPRESA -->
+        <div class="d-flex align-items-center flex-wrap gap-3">
+          <h3 class="brand-title m-0">Pedidos 360</h3>
 
-        <div class="col-lg-5">
-          <div class="company-card bg-white text-dark p-3 rounded-4 shadow-lg border-0">
-            <label class="form-label extra-small fw-bold text-uppercase text-primary m-0 mb-2 d-flex align-items-center justify-content-between">
-              <span>🏢 Empresa / Razón Social <span class="text-danger">*</span></span>
-              <span class="badge bg-primary-subtle text-primary extra-small">Requerido</span>
-            </label>
-            <div class="input-group">
-              <span class="input-group-text bg-light border-end-0">💼</span>
-              <input 
-                type="text" 
-                class="form-control fw-bold border-start-0 bg-light company-input" 
-                placeholder="Ej: Duoc UC / Tech Corp S.A."
-                [ngModel]="empresaNombre()"
-                (ngModelChange)="empresaNombre.set($event)"
-              />
-            </div>
+          <div class="company-input-container d-flex align-items-center gap-2 ms-2">
+            <span class="text-white-50 extra-small fw-bold text-uppercase">🏢 Empresa / Razón Social <span class="text-danger">*</span>:</span>
+            <input 
+              type="text" 
+              class="form-control form-control-sm company-header-input rounded-3" 
+              placeholder="Ej: Duoc UC / Comercial Beta S.A."
+              [ngModel]="empresaNombre()"
+              (ngModelChange)="empresaNombre.set($event)"
+            />
           </div>
         </div>
 
+        <!-- FILA 2: PESTAÑAS DE NAVEGACIÓN DEBAJO DEL TÍTULO -->
+        <nav class="d-flex align-items-center gap-2 mt-1">
+          <button 
+            class="admin-nav-tab" 
+            [class.active]="activeSubTab() === 'catalog'"
+            (click)="setSubTab('catalog')">
+            📦 Catálogo
+          </button>
+
+          <button 
+            class="admin-nav-tab position-relative" 
+            [class.active]="activeSubTab() === 'cart'"
+            (click)="setSubTab('cart')">
+            🛒 Carrito
+            <span *ngIf="totalItemsCount() > 0" class="badge rounded-pill bg-danger ms-1">
+              {{ totalItemsCount() }}
+            </span>
+          </button>
+
+          <button 
+            class="admin-nav-tab" 
+            [class.active]="activeSubTab() === 'history'"
+            (click)="setSubTab('history')">
+            📋 Mis Pedidos {{ empresaNombre() ? '(' + myCompanyOrders().length + ')' : '' }}
+          </button>
+        </nav>
+
       </div>
+
+      <!-- DERECHA: INDICADOR EMPRESA ACTIVA -->
+      <div class="d-flex align-items-center gap-2 text-white-50 extra-small">
+        <span *ngIf="empresaNombre()">Empresa Activa: <strong class="text-white fs-6 ms-1">{{ empresaNombre() }}</strong></span>
+      </div>
+
     </div>
   </header>
 
-  <!-- PESTAÑAS NAVEGACIÓN -->
-  <div class="d-flex gap-2 mb-4">
-    <button 
-      class="btn subtab-btn" 
-      [class.active]="activeSubTab() === 'catalog'" 
-      (click)="setSubTab('catalog')">
-      📦 Catálogo de Productos
-    </button>
-    <button 
-      class="btn subtab-btn" 
-      [class.active]="activeSubTab() === 'history'" 
-      (click)="setSubTab('history')">
-      📋 Mis Pedidos {{ empresaNombre() ? '(' + empresaNombre() + ')' : '' }}
-      <span *ngIf="empresaNombre()" class="badge bg-primary ms-1">{{ myCompanyOrders().length }}</span>
-    </button>
-  </div>
+  <!-- CONTENIDO EXPANDIDO A PANTALLA COMPLETA (100% ANCHO) -->
+  <main class="full-screen-container px-4 py-4">
 
-  @if (errorMessage()) {
-    <div class="alert alert-danger shadow-sm border-0 rounded-3 p-3 mb-4 d-flex align-items-center gap-2">
-      <span class="fs-5">⚠️</span>
-      <div class="fw-semibold">{{ errorMessage() }}</div>
-    </div>
-  }
+    <!-- ALERTA DE ERROR GLOBAL -->
+    @if (errorMessage()) {
+      <div class="alert alert-danger shadow-sm border-0 rounded-4 p-3 mb-4 d-flex align-items-center gap-2">
+        <span class="fs-5">⚠️</span>
+        <div class="fw-semibold fs-6">{{ errorMessage() }}</div>
+      </div>
+    }
 
-  @if (orderSuccess()) {
-    <div class="alert alert-success shadow-sm border-0 rounded-4 p-4 mb-4 text-center success-box">
-      <div class="fs-1 mb-2">🎉</div>
-      <h4 class="fw-bold text-success mb-1">¡Compra realizada con éxito!</h4>
-      <p class="m-0 text-dark">
-        El pago mediante <strong>Webpay Transbank</strong> ha sido procesado correctamente.<br>
-        Su pedido para <strong>{{ empresaNombre() }}</strong> fue registrado en Neon DB y el stock ha sido actualizado.
-      </p>
-      <button class="btn btn-success fw-bold px-4 rounded-pill mt-3 shadow-sm" (click)="closeSuccessModal()">
-        Aceptar y Ver Historial
-      </button>
-    </div>
-  }
+    <!-- BANNER ÉXITO WEBPAY -->
+    @if (orderSuccess()) {
+      <div class="alert alert-success shadow-sm border-0 rounded-4 p-4 mb-4 text-center">
+        <div class="fs-1 mb-2">🎉</div>
+        <h4 class="fw-bold text-success mb-1">¡Pago Procesado con Éxito!</h4>
+        <p class="m-0 text-dark">
+          Su orden para <strong>{{ empresaNombre() }}</strong> fue registrada correctamente en Neon DB mediante Webpay Transbank.
+        </p>
+        <button class="btn btn-success fw-bold px-4 rounded-3 mt-3 shadow-sm" (click)="closeSuccessModal()">
+          Aceptar y Ver Historial
+        </button>
+      </div>
+    }
 
-  <!-- VISTA 1: CATÁLOGO -->
-  @if (activeSubTab() === 'catalog') {
-    <div class="row g-4">
-      
-      <div class="col-lg-8">
-        <div class="card border-0 shadow-sm rounded-4 bg-white p-3 p-md-4">
-          
-          <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
-            <h5 class="fw-bold text-dark m-0 d-flex align-items-center gap-2">
-              📊 Catálogo General de Insumos
-            </h5>
+    <!-- VISTA 1: CATÁLOGO DE PRODUCTOS -->
+    @if (activeSubTab() === 'catalog') {
+      <div class="catalog-view">
+        
+        <!-- BUSCADOR SUPERIOR -->
+        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-3 bg-white p-3 rounded-4 shadow-sm border">
+          <div>
+            <h4 class="fw-extrabold text-dark m-0">Catálogo Tecnológico e Insumos</h4>
+            <span class="text-muted extra-small">Seleccione los productos para agregarlos al carrito corporativo</span>
+          </div>
+          <div class="search-box-wrapper">
             <input 
               type="text" 
-              class="form-control form-control-sm search-field" 
-              placeholder="🔍 Buscar por producto o categoría..." 
+              class="form-control form-control-sm search-input-lg rounded-3" 
+              placeholder="🔍 Buscar por nombre o categoría..." 
               [ngModel]="searchQuery()"
               (ngModelChange)="searchQuery.set($event)"
             />
           </div>
+        </div>
 
+        <!-- GRILLA DE PRODUCTOS FULL WIDTH -->
+        <div class="product-cards-grid">
+          @for (product of filteredProducts(); track product.id) {
+            <div class="product-card bg-white rounded-4 shadow-sm border d-flex flex-column justify-content-between overflow-hidden position-relative">
+              
+              <!-- BADGE DE STOCK -->
+              <div class="stock-pill-badge position-absolute top-0 end-0 m-2 z-2">
+                <span class="badge rounded-3" [ngClass]="product.stock > 0 ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle'">
+                  {{ product.stock > 0 ? product.stock + ' Unid.' : 'Agotado' }}
+                </span>
+              </div>
+
+              <!-- CONTENEDOR FOTO QUE OCUPA TODO EL ESPACIO SUPERIOR CENTRADO -->
+              <div class="product-img-box w-100 overflow-hidden bg-light">
+                <img 
+                  [src]="getRealProductImage(product)" 
+                  [alt]="product.nombre"
+                  class="product-full-img w-100 h-100"
+                />
+              </div>
+
+              <!-- CUERPO DE LA TARJETA CON DESCRIPCIÓN EN NEGRO PURO -->
+              <div class="product-card-body p-3 d-flex flex-column justify-content-between flex-grow-1">
+                <div>
+                  <div class="text-uppercase text-primary extra-small fw-extrabold mb-1">
+                    {{ product.categoria || 'General' }} • ID: #{{ product.id }}
+                  </div>
+                  
+                  <h6 class="product-card-title fw-bold text-dark mb-2" [title]="product.nombre">
+                    {{ product.nombre }}
+                  </h6>
+
+                  <!-- DESCRIPCIÓN EN NEGRO PURO -->
+                  <p class="product-card-desc text-black extra-small fw-semibold mb-3">
+                    {{ getProductDescription(product) }}
+                  </p>
+                </div>
+
+                <!-- PRECIO Y BOTÓN DE AGREGAR MÁS GRANDE Y REDONDEADO -->
+                <div class="pt-2 border-top mt-auto">
+                  <div class="d-flex justify-content-between align-items-baseline mb-3">
+                    <span class="text-muted extra-small fw-bold">Precio Neto:</span>
+                    <span class="fw-extrabold text-dark fs-4">${{ product.precio | number:'1.0-0' }}</span>
+                  </div>
+
+                  <button 
+                    class="btn btn-primary w-100 fw-bold py-2 fs-6 rounded-3 btn-add-cart-lg shadow-sm" 
+                    [disabled]="product.stock <= 0"
+                    (click)="addToCart(product)">
+                    🛒 Agregar al carro
+                  </button>
+                </div>
+              </div>
+
+            </div>
+          }
+        </div>
+
+      </div>
+    }
+
+    <!-- VISTA 2: CARRITO DE COMPRAS DEDICADO -->
+    @if (activeSubTab() === 'cart') {
+      <div class="cart-view">
+        <div class="row g-4">
+          
+          <div class="col-lg-8">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+              
+              <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
+                <h4 class="fw-extrabold text-dark m-0">🛒 Tu Carrito de Compras</h4>
+                <span class="badge bg-primary fs-6 px-3 py-2 rounded-3">{{ totalItemsCount() }} Ítems</span>
+              </div>
+
+              @if (cart().length === 0) {
+                <div class="text-center py-5">
+                  <div class="fs-1 mb-2">🛍️</div>
+                  <h5 class="fw-bold text-dark mb-1">Tu carrito está totalmente vacío</h5>
+                  <p class="text-muted small mb-3">Agrega productos desde el catálogo para iniciar tu proceso de compra.</p>
+                  <button class="btn btn-primary fw-bold px-4 py-2 rounded-3" (click)="setSubTab('catalog')">
+                    Ver Catálogo de Productos
+                  </button>
+                </div>
+              } @else {
+                
+                <div class="table-responsive">
+                  <table class="table align-middle">
+                    <thead class="table-light">
+                      <tr>
+                        <th>Producto</th>
+                        <th class="text-center">Precio Unit.</th>
+                        <th class="text-center">Cantidad</th>
+                        <th class="text-end">Subtotal</th>
+                        <th class="text-center">Acción</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      @for (item of cart(); track item.product.id) {
+                        <tr>
+                          <td>
+                            <div class="d-flex align-items-center gap-3">
+                              <img [src]="getRealProductImage(item.product)" class="cart-table-img rounded-3 border" alt="prod" />
+                              <div>
+                                <strong class="d-block text-dark fs-6">{{ item.product.nombre }}</strong>
+                                <small class="text-muted extra-small">ID: #{{ item.product.id }}</small>
+                              </div>
+                            </div>
+                          </td>
+                          <td class="text-center fw-bold text-secondary">
+                            ${{ item.product.precio | number:'1.0-0' }}
+                          </td>
+                          <td class="text-center">
+                            <div class="d-inline-flex align-items-center gap-2 bg-light p-1 rounded-3 border">
+                              <button class="btn btn-sm btn-white border px-2 py-0 fw-bold rounded-2" (click)="updateQuantity(item.product.id, -1)">-</button>
+                              <span class="fw-bold px-2">{{ item.quantity }}</span>
+                              <button class="btn btn-sm btn-white border px-2 py-0 fw-bold rounded-2" (click)="updateQuantity(item.product.id, 1)">+</button>
+                            </div>
+                          </td>
+                          <td class="text-end fw-extrabold text-primary fs-6">
+                            ${{ (item.product.precio * item.quantity) | number:'1.0-0' }}
+                          </td>
+                          <td class="text-center">
+                            <button class="btn btn-sm btn-outline-danger border-0 rounded-2" (click)="removeFromCart(item.product.id)">
+                              🗑️
+                            </button>
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+
+              }
+
+            </div>
+          </div>
+
+          <div class="col-lg-4">
+            <div class="card border-0 shadow-sm rounded-4 p-4 bg-white sticky-top" style="top: 20px;">
+              <h5 class="fw-extrabold text-dark border-bottom pb-3 mb-3">Resumen de Orden</h5>
+
+              <div class="mb-3 p-3 bg-light rounded-3 border">
+                <div class="text-muted extra-small uppercase fw-bold mb-1">Empresa / Cliente Registrado:</div>
+                <div class="fw-bold text-primary fs-6">{{ empresaNombre() || '⚠️ Nombre no ingresado' }}</div>
+              </div>
+
+              <div class="d-flex justify-content-between mb-2 text-muted">
+                <span>Cantidad Total:</span>
+                <span class="fw-bold text-dark">{{ totalItemsCount() }} unidades</span>
+              </div>
+
+              <div class="d-flex justify-content-between pt-3 mb-4 border-top">
+                <span class="fs-5 fw-bold text-dark">Total a Pagar:</span>
+                <span class="fs-3 fw-extrabold text-success">${{ totalAmount() | number:'1.0-0' }}</span>
+              </div>
+
+              <button 
+                class="btn btn-danger btn-lg w-100 fw-bold py-3 shadow btn-webpay-official rounded-3" 
+                [disabled]="loading() || cart().length === 0"
+                (click)="payWithWebpay()">
+                @if (loading()) {
+                  <span class="spinner-border spinner-border-sm me-2"></span>Conectando con Transbank...
+                } @else {
+                  💳 Confirmar y Pagar con Webpay
+                }
+              </button>
+
+              <div class="text-center mt-3">
+                <small class="text-muted extra-small">🔒 Pago 100% seguro redirigido a servidores de Transbank</small>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    }
+
+    <!-- VISTA 3: HISTORIAL DE PEDIDOS -->
+    @if (activeSubTab() === 'history') {
+      <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+        
+        <div class="d-flex justify-content-between align-items-center mb-4 border-bottom pb-3">
+          <div>
+            <h4 class="fw-extrabold text-dark m-0">Historial de Pedidos</h4>
+            <p class="text-muted small m-0 mt-1">
+              Mostrando registros en Neon DB para: <strong class="text-primary">{{ empresaNombre() || 'Ninguna empresa ingresada' }}</strong>
+            </p>
+          </div>
+          <button *ngIf="empresaNombre()" class="btn btn-sm btn-outline-primary fw-bold rounded-3" (click)="loadOrders()">
+            🔄 Sincronizar DB
+          </button>
+        </div>
+
+        @if (!empresaNombre().trim()) {
+          <div class="text-center py-5 bg-light rounded-4 border border-dashed my-3">
+            <div class="fs-1 mb-2">🏢</div>
+            <h6 class="fw-bold text-dark mb-1">Ingrese su Empresa en la barra superior</h6>
+            <p class="text-muted small m-0">Los pedidos registrados en Neon DB se filtran por la Razón Social ingresada.</p>
+          </div>
+        } 
+        @else if (myCompanyOrders().length === 0) {
+          <div class="text-center py-5 text-muted">
+            <p class="fw-bold text-dark m-0">No hay pedidos registrados para "{{ empresaNombre() }}" en Neon DB.</p>
+          </div>
+        } 
+        @else {
           <div class="table-responsive">
-            <table class="table table-hover align-middle border-top m-0">
+            <table class="table table-hover align-middle">
               <thead class="table-light">
                 <tr>
-                  <th style="width: 60px;">Imagen</th>
-                  <th>Producto</th>
-                  <th>Categoría</th>
-                  <th class="text-end">Precio Unit.</th>
-                  <th class="text-center">Stock DB</th>
-                  <th class="text-center" style="width: 120px;">Acción</th>
+                  <th>ID</th>
+                  <th>Cliente</th>
+                  <th>Detalle Venta</th>
+                  <th>Método Pago</th>
+                  <th>Estado</th>
+                  <th class="text-end">Monto Total</th>
                 </tr>
               </thead>
               <tbody>
-                @for (product of filteredProducts(); track product.id) {
+                @for (order of myCompanyOrders(); track order.id) {
                   <tr>
+                    <td class="fw-bold text-secondary">#{{ order.id }}</td>
+                    <td><strong class="text-dark">{{ order.cliente }}</strong></td>
                     <td>
-                      <img 
-                        [src]="getProductImage(product)" 
-                        [alt]="product.nombre"
-                        class="product-thumb rounded-3 shadow-sm"
-                        onerror="this.src='https://images.unsplash.com/photo-1581235720704-06d3acfcb36f?w=150&auto=format&fit=crop&q=80'"
-                      />
-                    </td>
-                    <td>
-                      <strong class="text-dark d-block">{{ product.nombre }}</strong>
-                      <small class="text-muted extra-small">ID: #{{ product.id }}</small>
-                    </td>
-                    <td>
-                      <span class="badge bg-light text-secondary border">
-                        {{ product.categoria || 'General' }}
+                      <span class="badge bg-light text-dark border p-2 fw-semibold rounded-3">
+                        🛒 {{ order.detalleProductos || order.productoNombre }}
                       </span>
                     </td>
-                    <td class="text-end fw-bold text-primary fs-6">
-                      ${{ product.precio | number:'1.0-0' }}
-                    </td>
-                    <td class="text-center">
-                      <span class="badge" [ngClass]="product.stock > 0 ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-danger-subtle text-danger border border-danger-subtle'">
-                        {{ product.stock > 0 ? product.stock + ' un.' : 'Agotado' }}
+                    <td>
+                      <span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-bold rounded-3">
+                        💳 {{ order.metodoPago || 'Webpay Transbank' }}
                       </span>
                     </td>
-                    <td class="text-center">
-                      <button 
-                        class="btn btn-sm btn-primary fw-bold w-100 rounded-2 shadow-sm" 
-                        [disabled]="product.stock <= 0"
-                        (click)="addToCart(product)">
-                        🛒 Agregar
-                      </button>
+                    <td>
+                      <span class="badge rounded-3" [ngClass]="{
+                        'bg-warning-subtle text-warning-emphasis border border-warning-subtle': order.estado === 'CREADO',
+                        'bg-success-subtle text-success border border-success-subtle': order.estado === 'ENTREGADO' || order.estado === 'PAGADO',
+                        'bg-danger-subtle text-danger border border-danger-subtle': order.estado === 'CANCELADO'
+                      }">
+                        {{ order.estado }}
+                      </span>
+                    </td>
+                    <td class="text-end fw-bold text-success fs-6">
+                      ${{ order.monto | number:'1.0-0' }}
                     </td>
                   </tr>
                 }
               </tbody>
             </table>
           </div>
+        }
 
-        </div>
       </div>
+    }
 
-      <!-- CARRITO LATERAL -->
-      <div class="col-lg-4">
-        <div class="card border-0 shadow-sm rounded-4 bg-white sticky-top" style="top: 20px;">
-          
-          <div class="card-header bg-primary text-white p-3 d-flex justify-content-between align-items-center rounded-top-4">
-            <h6 class="m-0 fw-bold">🛒 Resumen de Compra</h6>
-            <span class="badge bg-white text-primary fw-bold">{{ totalItemsCount() }} ítems</span>
-          </div>
-
-          <div class="card-body p-3">
-            @if (cart().length === 0) {
-              <div class="text-center py-4 text-muted">
-                <div class="fs-1 mb-2">🛍️</div>
-                <p class="fw-bold text-dark m-0">El carrito está vacío</p>
-                <small>Seleccione productos de la tabla para comprar.</small>
-              </div>
-            } @else {
-              
-              <div class="cart-items-list mb-3">
-                @for (item of cart(); track item.product.id) {
-                  <div class="p-2 mb-2 bg-light rounded-3 border d-flex align-items-center justify-content-between gap-2">
-                    <img 
-                      [src]="getProductImage(item.product)" 
-                      class="cart-thumb rounded-2"
-                      alt="Thumbnail"
-                    />
-                    <div class="flex-grow-1 min-width-0">
-                      <strong class="d-block text-dark small text-truncate">{{ item.product.nombre }}</strong>
-                      <span class="text-muted extra-small">${{ item.product.precio | number:'1.0-0' }} c/u</span>
-                    </div>
-
-                    <div class="d-flex align-items-center gap-1">
-                      <button class="btn btn-sm btn-outline-secondary px-2 py-0" (click)="updateQuantity(item.product.id, -1)">-</button>
-                      <span class="fw-bold px-1 small">{{ item.quantity }}</span>
-                      <button class="btn btn-sm btn-outline-secondary px-2 py-0" (click)="updateQuantity(item.product.id, 1)">+</button>
-                      
-                      <button class="btn btn-sm text-danger border-0 ms-1 p-0" (click)="removeFromCart(item.product.id)">🗑️</button>
-                    </div>
-                  </div>
-                }
-              </div>
-
-              <div class="p-3 mb-3 bg-light rounded-3 border">
-                <small class="text-muted extra-small d-block">Empresa asociada:</small>
-                <strong class="text-primary fs-6">{{ empresaNombre() || '⚠️ Ingrese su empresa arriba' }}</strong>
-              </div>
-
-              <div class="d-flex justify-content-between align-items-center pt-2 mb-3 border-top">
-                <span class="fw-bold text-dark fs-6">Total Final:</span>
-                <span class="fs-4 fw-extrabold text-success">${{ totalAmount() | number:'1.0-0' }}</span>
-              </div>
-
-              <button 
-                class="btn btn-danger btn-lg w-100 fw-bold shadow-sm btn-webpay rounded-3 d-flex align-items-center justify-content-center gap-2" 
-                [disabled]="loading() || cart().length === 0"
-                (click)="payWithWebpay()">
-                @if (loading()) {
-                  <span class="spinner-border spinner-border-sm me-2"></span>Conectando Webpay...
-                } @else {
-                  <span>💳</span>
-                  <span>Pagar con Webpay Transbank</span>
-                }
-              </button>
-
-              <div class="text-center mt-2">
-                <small class="text-muted extra-small">🔒 Pago seguro procesado por Transbank Chile</small>
-              </div>
-            }
-          </div>
-
-        </div>
-      </div>
-
-    </div>
-  }
-
-  <!-- VISTA 2: HISTORIAL -->
-  @if (activeSubTab() === 'history') {
-    <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
-      
-      <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h5 class="fw-bold text-dark m-0">Historial de Compras de la Empresa</h5>
-          <p class="text-muted small m-0 mt-1">
-            Consultando registros en Neon DB para: <strong class="text-primary">{{ empresaNombre() || 'Ninguna empresa ingresada' }}</strong>
-          </p>
-        </div>
-        <button *ngIf="empresaNombre()" class="btn btn-sm btn-outline-primary fw-bold rounded-2" (click)="loadOrders()">
-          🔄 Sincronizar DB
-        </button>
-      </div>
-
-      @if (!empresaNombre().trim()) {
-        <div class="text-center py-5 bg-light rounded-4 border border-dashed my-3">
-          <div class="fs-1 mb-2">🏢</div>
-          <h6 class="fw-bold text-dark mb-1">Ingrese el nombre de su empresa para ver sus pedidos</h6>
-          <p class="text-muted small m-0">Escriba la Razón Social en el campo superior para filtrar sus compras registradas.</p>
-        </div>
-      } 
-      @else if (myCompanyOrders().length === 0) {
-        <div class="text-center py-5 text-muted">
-          <div class="fs-2 mb-1">📄</div>
-          <p class="fw-bold text-dark m-0">No existen pedidos guardados para "{{ empresaNombre() }}" en Neon DB.</p>
-          <small>Si el administrador eliminó su pedido, ya no figurará en este historial.</small>
-        </div>
-      } 
-      @else {
-        <div class="table-responsive">
-          <table class="table table-hover align-middle border-top m-0">
-            <thead class="table-light">
-              <tr>
-                <th>ID Orden</th>
-                <th>Empresa / Cliente</th>
-                <th>Fecha</th>
-                <th>Detalle de la Venta</th>
-                <th>Método de Pago</th>
-                <th>Estado</th>
-                <th class="text-end">Monto Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (order of myCompanyOrders(); track order.id) {
-                <tr>
-                  <td class="fw-bold text-secondary">#{{ order.id }}</td>
-                  <td><strong class="text-dark">{{ order.cliente }}</strong></td>
-                  <td class="text-muted small">📅 {{ order.fecha || 'Reciente' }}</td>
-                  <td>
-                    <span class="badge bg-light text-dark border p-2 fw-semibold text-wrap text-start">
-                      🛒 {{ order.detalleProductos || order.productoNombre || 'Detalle no especificado' }}
-                    </span>
-                  </td>
-                  <td>
-                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-bold">
-                      💳 {{ order.metodoPago || 'Webpay Transbank' }}
-                    </span>
-                  </td>
-                  <td>
-                    <span class="badge" [ngClass]="{
-                      'bg-warning-subtle text-warning-emphasis border border-warning-subtle': order.estado === 'CREADO',
-                      'bg-info-subtle text-info-emphasis border border-info-subtle': order.estado === 'ACEPTADO',
-                      'bg-primary-subtle text-primary border border-primary-subtle': order.estado === 'EN_PREPARACIÓN',
-                      'bg-secondary-subtle text-secondary border border-secondary-subtle': order.estado === 'DESPACHADO',
-                      'bg-success-subtle text-success border border-success-subtle': order.estado === 'ENTREGADO',
-                      'bg-danger-subtle text-danger border border-danger-subtle': order.estado === 'CANCELADO'
-                    }">
-                      {{ order.estado }}
-                    </span>
-                  </td>
-                  <td class="text-end fw-bold text-success fs-6">
-                    ${{ order.monto | number:'1.0-0' }}
-                  </td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        </div>
-      }
-
-    </div>
-  }
-
+  </main>
 </div>

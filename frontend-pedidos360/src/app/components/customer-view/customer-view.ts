@@ -8,6 +8,7 @@ import { PaymentService } from '../../services/payment.service';
 
 export interface ExtendedProduct extends Product {
   imagenUrl?: string;
+  descripcion?: string;
 }
 
 export interface ExtendedCartItem {
@@ -44,14 +45,62 @@ export class CustomerViewComponent implements OnInit {
   orderSuccess = signal<boolean>(false);
   lastOrderId = signal<number | null>(null);
 
-  activeSubTab = signal<'catalog' | 'history'>('catalog');
+  activeSubTab = signal<'catalog' | 'cart' | 'history'>('catalog');
   searchQuery = signal<string>('');
 
-  defaultProductImg = 'https://images.unsplash.com/photo-1581235720704-06d3acfcb36f?w=150&auto=format&fit=crop&q=80';
+  getRealProductImage(product: any): string {
+    if (product?.imagenUrl && product.imagenUrl.startsWith('http') && !product.imagenUrl.includes('picsum')) {
+      return product.imagenUrl;
+    }
 
-  // Helper para resolver la imagen sin errores de tipos en la plantilla HTML
-  getProductImage(product: any): string {
-    return product?.imagenUrl || this.defaultProductImg;
+    const name = (product?.nombre || '').toLowerCase();
+
+    if (name.includes('mouse') || name.includes('ratón') || name.includes('raton')) {
+      return 'https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?w=800&auto=format&fit=crop&q=80';
+    }
+    if (name.includes('teclado') || name.includes('keyboard')) {
+      return 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=800&auto=format&fit=crop&q=80';
+    }
+    if (name.includes('laptop') || name.includes('notebook') || name.includes('macbook') || name.includes('computador')) {
+      return 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=800&auto=format&fit=crop&q=80';
+    }
+    if (name.includes('monitor') || name.includes('pantalla')) {
+      return 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=800&auto=format&fit=crop&q=80';
+    }
+    if (name.includes('audifono') || name.includes('headphone') || name.includes('auricular')) {
+      return 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800&auto=format&fit=crop&q=80';
+    }
+    if (name.includes('silla') || name.includes('chair')) {
+      return 'https://images.unsplash.com/photo-1580481072645-022f9a6d1270?w=800&auto=format&fit=crop&q=80';
+    }
+    
+    return 'https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=800&auto=format&fit=crop&q=80';
+  }
+
+  getProductDescription(product: any): string {
+    if (product?.descripcion) {
+      return product.descripcion;
+    }
+
+    const name = (product?.nombre || '').toLowerCase();
+
+    if (name.includes('mouse')) {
+      return 'Sensor óptico de alta precisión, diseño ergonómico y conexión inalámbrica 2.4GHz de baja latencia.';
+    }
+    if (name.includes('teclado')) {
+      return 'Switches mecánicos de alta durabilidad, retroiluminación y estructura reforzada para uso intensivo.';
+    }
+    if (name.includes('laptop') || name.includes('notebook')) {
+      return 'Procesador de alto rendimiento, pantalla FHD y batería de larga duración ideal para trabajo corporativo.';
+    }
+    if (name.includes('monitor')) {
+      return 'Panel IPS con colores nítidos, tasa de refresco fluida y filtro de protección ocular para largas jornadas.';
+    }
+    if (name.includes('audifono')) {
+      return 'Aislamiento acústico pasivo, micrófono HD integrado y almohadillas confortables de memoria.';
+    }
+
+    return 'Equipamiento tecnológico corporativo de alta calidad con garantía y soporte directo.';
   }
 
   filteredProducts = computed(() => {
@@ -94,6 +143,7 @@ export class CustomerViewComponent implements OnInit {
 
     if (tokenWs || status === 'success' || status === 'approved') {
       this.orderSuccess.set(true);
+      this.activeSubTab.set('history');
       this.loadOrders();
       window.history.replaceState({}, document.title, window.location.pathname);
     }
@@ -103,9 +153,10 @@ export class CustomerViewComponent implements OnInit {
     this.ordersService.getProducts().subscribe({
       next: (data) => {
         if (Array.isArray(data)) {
-          const mapped = data.map((p: any, idx: number) => ({
+          const mapped = data.map((p: any) => ({
             ...p,
-            imagenUrl: p.imagenUrl || `https://picsum.photos/seed/prod-${p.id || idx + 1}/150/150`
+            imagenUrl: this.getRealProductImage(p),
+            descripcion: this.getProductDescription(p)
           }));
           this.products.set(mapped);
         } else {
@@ -142,7 +193,7 @@ export class CustomerViewComponent implements OnInit {
     });
   }
 
-  setSubTab(tab: 'catalog' | 'history'): void {
+  setSubTab(tab: 'catalog' | 'cart' | 'history'): void {
     this.activeSubTab.set(tab);
     if (tab === 'history') {
       this.loadOrders();
@@ -151,7 +202,8 @@ export class CustomerViewComponent implements OnInit {
 
   addToCart(product: ExtendedProduct): void {
     if (!this.empresaNombre().trim()) {
-      this.errorMessage.set('⚠️ Debe ingresar el nombre de su empresa en el panel superior antes de agregar productos.');
+      this.errorMessage.set('⚠️ Debe ingresar la Razón Social / Nombre de su empresa en la barra superior.');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
 
