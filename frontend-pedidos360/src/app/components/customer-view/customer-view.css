@@ -1,47 +1,71 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :host {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
   display: block;
   background-color: #f8fafc;
-  color: #1e293b;
+  color: #0f172a;
 }
 
-.extra-small {
-  font-size: 0.75rem;
-}
+.fw-extrabold { font-weight: 800; }
+.extra-small { font-size: 0.75rem; }
 
 .store-wrapper {
-  max-width: 1200px;
+  max-width: 1240px;
   margin: 0 auto;
 }
 
-/* BANNER DE CABECERA CORDPORATIVO (SIN NEGRO) */
-.company-banner-card {
-  background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
-  border: 1px solid #e2e8f0 !important;
+/* HERO BANNER VISUAL */
+.hero-banner {
+  background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
 }
 
-.company-field:focus {
+.hero-bg-overlay {
+  position: absolute;
+  top: 0; right: 0; bottom: 0; left: 0;
+  background-image: radial-gradient(circle at 90% 10%, rgba(255, 255, 255, 0.15) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.company-card {
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2) !important;
+}
+
+.company-input:focus {
   border-color: #2563eb;
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+  box-shadow: none;
 }
 
-/* SUB-TAB NAVEGACIÓN */
+/* SUB TABS NAVEGACIÓN */
 .subtab-btn {
   background-color: #ffffff;
   border: 1px solid #cbd5e1;
   color: #475569;
-  font-weight: 600;
-  padding: 9px 18px;
-  border-radius: 10px;
-  transition: all 0.15s ease;
+  font-weight: 700;
+  padding: 10px 20px;
+  border-radius: 12px;
+  transition: all 0.2s ease;
 }
 
 .subtab-btn.active, .subtab-btn:hover {
   background-color: #2563eb;
   color: #ffffff;
   border-color: #2563eb;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+/* IMÁGENES DE PRODUCTOS */
+.product-thumb {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border: 1px solid #e2e8f0;
+}
+
+.cart-thumb {
+  width: 36px;
+  height: 36px;
+  object-fit: cover;
 }
 
 /* BUSCADOR */
@@ -50,11 +74,11 @@
   border-radius: 8px;
 }
 
-/* TABLA FORMAL */
+/* TABLAS FORMALES */
 .table th {
   font-size: 0.8rem;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
   font-weight: 700;
   color: #475569;
 }
@@ -63,7 +87,7 @@
   font-size: 0.9rem;
 }
 
-/* CARRITO */
+/* CARRITO LATERAL */
 .cart-items-list {
   max-height: 260px;
   overflow-y: auto;
@@ -75,18 +99,25 @@
   border-color: #e60023;
   padding: 12px;
   font-size: 0.95rem;
-  transition: background-color 0.2s ease, transform 0.1s ease;
+  transition: all 0.2s ease;
 }
 
 .btn-webpay:hover:not(:disabled) {
   background-color: #cc001f;
   border-color: #cc001f;
+  transform: translateY(-1px);
 }
 
 .btn-webpay:disabled {
   background-color: #fca5a5;
   border-color: #fca5a5;
   cursor: not-allowed;
+}
+
+/* BOX ÉXITO */
+.success-box {
+  background-color: #f0fdf4 !important;
+  border: 1px solid #bbf7d0 !important;
 }
 
 .border-dashed {

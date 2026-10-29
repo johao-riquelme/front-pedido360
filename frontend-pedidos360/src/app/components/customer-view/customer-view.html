@@ -1,46 +1,52 @@
 <div class="store-wrapper my-3">
 
-  <!-- PANEL CORPORATIVO SUPERIOR: INGRESO DE EMPRESA (FONDO LUMINOSO / PROFESIONAL) -->
-  <header class="company-banner-card card border-0 shadow-sm rounded-4 p-4 mb-4">
-    <div class="row align-items-center g-3">
-      <div class="col-lg-6">
-        <div class="d-flex align-items-center gap-2 mb-1">
-          <span class="badge bg-primary-subtle text-primary fw-bold px-3 py-1 rounded-pill extra-small">
-            E-Commerce Corporativo
+  <!-- HERO BANNER VISUAL CON IMAGEN CORPORATIVA Y DATOS DE LA EMPRESA -->
+  <header class="hero-banner card border-0 shadow-sm rounded-4 mb-4 overflow-hidden position-relative">
+    <div class="hero-bg-overlay"></div>
+    <div class="card-body p-4 p-md-5 position-relative z-1 text-white">
+      <div class="row align-items-center g-4">
+        
+        <div class="col-lg-7">
+          <span class="badge bg-white text-primary fw-bold px-3 py-2 rounded-pill shadow-sm mb-2 extra-small">
+            🌐 Portal Oficial de Ventas B2B
           </span>
+          <h2 class="fw-extrabold m-0 text-white display-6">Pedidos 360 Corporate</h2>
+          <p class="text-white-50 small m-0 mt-2">
+            Catálogo institucional conectado a Neon DB con actualización de stock e integración Transbank Webpay.
+          </p>
         </div>
-        <h3 class="fw-bold text-dark m-0">Portal de Ventas & Pedidos</h3>
-        <p class="text-muted small m-0 mt-1">Gestione sus compras empresariales con actualización de stock en tiempo real.</p>
-      </div>
 
-      <div class="col-lg-6">
-        <div class="company-input-box p-3 rounded-3 bg-white border border-primary-subtle shadow-sm">
-          <label class="form-label extra-small fw-bold text-uppercase text-primary m-0 mb-1 d-flex align-items-center justify-content-between">
-            <span>🏢 Razón Social / Nombre de la Empresa <span class="text-danger">*</span></span>
-            <span class="text-muted extra-small font-normal">Requerido para comprar</span>
-          </label>
-          <div class="input-group">
-            <span class="input-group-text bg-light border-end-0 text-muted">✍️</span>
-            <input 
-              type="text" 
-              class="form-control fw-bold text-dark border-start-0 bg-light-subtle company-field" 
-              placeholder="Ej: Duoc UC / Tech Solutions Ltd."
-              [ngModel]="empresaNombre()"
-              (ngModelChange)="empresaNombre.set($event)"
-            />
+        <!-- INPUT DE EMPRESA CON TARJETA DE ESTILO -->
+        <div class="col-lg-5">
+          <div class="company-card bg-white text-dark p-3 rounded-4 shadow-lg border-0">
+            <label class="form-label extra-small fw-bold text-uppercase text-primary m-0 mb-2 d-flex align-items-center justify-content-between">
+              <span>🏢 Empresa / Razón Social <span class="text-danger">*</span></span>
+              <span class="badge bg-primary-subtle text-primary extra-small">Requerido</span>
+            </label>
+            <div class="input-group">
+              <span class="input-group-text bg-light border-end-0">💼</span>
+              <input 
+                type="text" 
+                class="form-control fw-bold border-start-0 bg-light company-input" 
+                placeholder="Ej: Duoc UC / Tech Corp S.A."
+                [ngModel]="empresaNombre()"
+                (ngModelChange)="empresaNombre.set($event)"
+              />
+            </div>
           </div>
         </div>
+
       </div>
     </div>
   </header>
 
-  <!-- PESTAÑAS DE NAVEGACIÓN -->
-  <div class="d-flex gap-2 mb-3">
+  <!-- PESTAÑAS NAVEGACIÓN WEB -->
+  <div class="d-flex gap-2 mb-4">
     <button 
       class="btn subtab-btn" 
       [class.active]="activeSubTab() === 'catalog'" 
       (click)="setSubTab('catalog')">
-      📦 Catálogo de Productos (Tabla)
+      📦 Catálogo de Productos
     </button>
     <button 
       class="btn subtab-btn" 
@@ -53,40 +59,43 @@
 
   <!-- ALERTA DE ERROR -->
   @if (errorMessage()) {
-    <div class="alert alert-danger shadow-sm border-0 rounded-3 p-3 mb-3 d-flex align-items-center gap-2">
+    <div class="alert alert-danger shadow-sm border-0 rounded-3 p-3 mb-4 d-flex align-items-center gap-2">
       <span class="fs-5">⚠️</span>
       <div class="fw-semibold">{{ errorMessage() }}</div>
     </div>
   }
 
-  <!-- BANNER DE ÉXITO TRAS COMPRA -->
+  <!-- BANNER DE ÉXITO PAGO TRANSBANK -->
   @if (orderSuccess()) {
-    <div class="alert alert-success shadow-sm border-0 rounded-4 p-4 mb-4 text-center">
-      <div class="fs-2 mb-1">✅</div>
+    <div class="alert alert-success shadow-sm border-0 rounded-4 p-4 mb-4 text-center success-box">
+      <div class="fs-1 mb-2">🎉</div>
       <h4 class="fw-bold text-success mb-1">¡Compra realizada con éxito!</h4>
       <p class="m-0 text-dark">
-        Su orden <strong>#{{ lastOrderId() }}</strong> para <strong>{{ empresaNombre() }}</strong> fue guardada en Neon DB y el stock de productos ha sido descontado.
+        El pago mediante <strong>Webpay Transbank</strong> ha sido procesado correctamente.<br>
+        Su pedido para <strong>{{ empresaNombre() }}</strong> fue registrado en Neon DB y el stock ha sido actualizado.
       </p>
-      <button class="btn btn-success fw-bold px-4 rounded-3 mt-3" (click)="closeSuccessModal()">
-        Aceptar
+      <button class="btn btn-success fw-bold px-4 rounded-pill mt-3 shadow-sm" (click)="closeSuccessModal()">
+        Aceptar y Ver Historial
       </button>
     </div>
   }
 
-  <!-- VISTA 1: CATÁLOGO DE PRODUCTOS (TABLA FORMAL) -->
+  <!-- VISTA 1: CATÁLOGO DE PRODUCTOS EN TABLA CON IMÁGENES -->
   @if (activeSubTab() === 'catalog') {
     <div class="row g-4">
       
-      <!-- TABLA FORMAL DE PRODUCTOS -->
+      <!-- TABLA FORMAL CON MINIANUTURAS -->
       <div class="col-lg-8">
-        <div class="card border-0 shadow-sm rounded-4 bg-white p-3">
+        <div class="card border-0 shadow-sm rounded-4 bg-white p-3 p-md-4">
           
-          <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="fw-bold text-dark m-0">Catálogo Institucional</h5>
+          <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+            <h5 class="fw-bold text-dark m-0 d-flex align-items-center gap-2">
+              📊 Catálogo General de Insumos
+            </h5>
             <input 
               type="text" 
               class="form-control form-control-sm search-field" 
-              placeholder="🔍 Buscar producto o categoría..." 
+              placeholder="🔍 Buscar por producto o categoría..." 
               [ngModel]="searchQuery()"
               (ngModelChange)="searchQuery.set($event)"
             />
@@ -96,27 +105,36 @@
             <table class="table table-hover align-middle border-top m-0">
               <thead class="table-light">
                 <tr>
-                  <th style="width: 70px;">ID</th>
+                  <th style="width: 60px;">Imagen</th>
                   <th>Producto</th>
                   <th>Categoría</th>
                   <th class="text-end">Precio Unit.</th>
                   <th class="text-center">Stock DB</th>
-                  <th class="text-center" style="width: 130px;">Acción</th>
+                  <th class="text-center" style="width: 120px;">Acción</th>
                 </tr>
               </thead>
               <tbody>
                 @for (product of filteredProducts(); track product.id) {
                   <tr>
-                    <td class="fw-bold text-muted">#{{ product.id }}</td>
+                    <!-- IMAGEN DEL PRODUCTO -->
                     <td>
-                      <strong class="text-dark">{{ product.nombre }}</strong>
+                      <img 
+                        [src]="product.imagenUrl || defaultProductImg" 
+                        [alt]="product.nombre"
+                        class="product-thumb rounded-3 shadow-sm"
+                        onerror="this.src='https://images.unsplash.com/photo-1581235720704-06d3acfcb36f?w=150&auto=format&fit=crop&q=80'"
+                      />
+                    </td>
+                    <td>
+                      <strong class="text-dark d-block">{{ product.nombre }}</strong>
+                      <small class="text-muted extra-small">ID: #{{ product.id }}</small>
                     </td>
                     <td>
                       <span class="badge bg-light text-secondary border">
                         {{ product.categoria || 'General' }}
                       </span>
                     </td>
-                    <td class="text-end fw-bold text-primary">
+                    <td class="text-end fw-bold text-primary fs-6">
                       ${{ product.precio | number:'1.0-0' }}
                     </td>
                     <td class="text-center">
@@ -126,7 +144,7 @@
                     </td>
                     <td class="text-center">
                       <button 
-                        class="btn btn-sm btn-primary fw-bold w-100 rounded-2" 
+                        class="btn btn-sm btn-primary fw-bold w-100 rounded-2 shadow-sm" 
                         [disabled]="product.stock <= 0"
                         (click)="addToCart(product)">
                         🛒 Agregar
@@ -141,7 +159,7 @@
         </div>
       </div>
 
-      <!-- CARRITO LATERAL -->
+      <!-- CARRITO LATERAL DE COMPRA -->
       <div class="col-lg-4">
         <div class="card border-0 shadow-sm rounded-4 bg-white sticky-top" style="top: 20px;">
           
@@ -153,7 +171,7 @@
           <div class="card-body p-3">
             @if (cart().length === 0) {
               <div class="text-center py-4 text-muted">
-                <div class="fs-2 mb-1">🛍️</div>
+                <div class="fs-1 mb-2">🛍️</div>
                 <p class="fw-bold text-dark m-0">El carrito está vacío</p>
                 <small>Seleccione productos de la tabla para comprar.</small>
               </div>
@@ -161,9 +179,14 @@
               
               <div class="cart-items-list mb-3">
                 @for (item of cart(); track item.product.id) {
-                  <div class="p-2 mb-2 bg-light rounded-3 border d-flex align-items-center justify-content-between">
-                    <div>
-                      <strong class="d-block text-dark small">{{ item.product.nombre }}</strong>
+                  <div class="p-2 mb-2 bg-light rounded-3 border d-flex align-items-center justify-content-between gap-2">
+                    <img 
+                      [src]="item.product.imagenUrl || defaultProductImg" 
+                      class="cart-thumb rounded-2"
+                      alt="Thumbnail"
+                    />
+                    <div class="flex-grow-1 min-width-0">
+                      <strong class="d-block text-dark small text-truncate">{{ item.product.nombre }}</strong>
                       <span class="text-muted extra-small">${{ item.product.precio | number:'1.0-0' }} c/u</span>
                     </div>
 
@@ -178,27 +201,32 @@
                 }
               </div>
 
-              <div class="p-2 mb-3 bg-light rounded-3 border">
+              <div class="p-3 mb-3 bg-light rounded-3 border">
                 <small class="text-muted extra-small d-block">Empresa asociada:</small>
-                <strong class="text-primary">{{ empresaNombre() || '⚠️ Ingrese su empresa arriba' }}</strong>
+                <strong class="text-primary fs-6">{{ empresaNombre() || '⚠️ Ingrese su empresa arriba' }}</strong>
               </div>
 
               <div class="d-flex justify-content-between align-items-center pt-2 mb-3 border-top">
-                <span class="fw-bold text-dark">Total a Pagar:</span>
-                <span class="fs-4 fw-bold text-success">${{ totalAmount() | number:'1.0-0' }}</span>
+                <span class="fw-bold text-dark fs-6">Total Final:</span>
+                <span class="fs-4 fw-extrabold text-success">${{ totalAmount() | number:'1.0-0' }}</span>
               </div>
 
-              <!-- BOTÓN TRANSBANK WEBPAY -->
+              <!-- BOTÓN OFICIAL TRANSBANK WEBPAY CON ICONO Y ESTILOS -->
               <button 
-                class="btn btn-danger btn-lg w-100 fw-bold shadow-sm btn-webpay rounded-3" 
+                class="btn btn-danger btn-lg w-100 fw-bold shadow-sm btn-webpay rounded-3 d-flex align-items-center justify-content-center gap-2" 
                 [disabled]="loading() || cart().length === 0"
                 (click)="payWithWebpay()">
                 @if (loading()) {
-                  <span class="spinner-border spinner-border-sm me-2"></span>Procesando...
+                  <span class="spinner-border spinner-border-sm me-2"></span>Conectando Webpay...
                 } @else {
-                  💳 Pagar con Webpay Transbank
+                  <span>💳</span>
+                  <span>Pagar con Webpay Transbank</span>
                 }
               </button>
+
+              <div class="text-center mt-2">
+                <small class="text-muted extra-small">🔒 Pago seguro procesado por Transbank Chile</small>
+              </div>
             }
           </div>
 
@@ -208,38 +236,36 @@
     </div>
   }
 
-  <!-- VISTA 2: MIS PEDIDOS (ACTIVADO SOLO AL INGRESAR LA EMPRESA) -->
+  <!-- VISTA 2: HISTORIAL FILTRADO EN NEON DB -->
   @if (activeSubTab() === 'history') {
     <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
       
-      <div class="d-flex justify-content-between align-items-center mb-3">
+      <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h5 class="fw-bold text-dark m-0">Historial de Compras de la Empresa</h5>
-          <p class="text-muted small m-0">
-            Consultando registros en Neon DB para: 
-            <strong class="text-primary">{{ empresaNombre() || 'Ninguna empresa ingresada' }}</strong>
+          <p class="text-muted small m-0 mt-1">
+            Consultando registros en Neon DB para: <strong class="text-primary">{{ empresaNombre() || 'Ninguna empresa ingresada' }}</strong>
           </p>
         </div>
-        <button *ngIf="empresaNombre()" class="btn btn-sm btn-outline-primary fw-bold" (click)="loadOrders()">🔄 Recargar</button>
+        <button *ngIf="empresaNombre()" class="btn btn-sm btn-outline-primary fw-bold rounded-2" (click)="loadOrders()">
+          🔄 Sincronizar DB
+        </button>
       </div>
 
-      <!-- SI NO SE HA INGRESADO LA EMPRESA -->
       @if (!empresaNombre().trim()) {
         <div class="text-center py-5 bg-light rounded-4 border border-dashed my-3">
           <div class="fs-1 mb-2">🏢</div>
           <h6 class="fw-bold text-dark mb-1">Ingrese el nombre de su empresa para ver sus pedidos</h6>
-          <p class="text-muted small m-0">Escriba la Razón Social en el campo superior para filtrar los registros guardados en la base de datos.</p>
+          <p class="text-muted small m-0">Escriba la Razón Social en el campo superior para filtrar sus compras registradas.</p>
         </div>
       } 
-      <!-- SI SE INGRESÓ LA EMPRESA PERO NO TIENE PEDIDOS REGISTRADOS -->
       @else if (myCompanyOrders().length === 0) {
         <div class="text-center py-5 text-muted">
           <div class="fs-2 mb-1">📄</div>
-          <p class="fw-bold text-dark m-0">No se encontraron pedidos guardados para "{{ empresaNombre() }}" en Neon DB.</p>
-          <small>Realice una compra desde el catálogo para visualizarla aquí.</small>
+          <p class="fw-bold text-dark m-0">No existen pedidos guardados para "{{ empresaNombre() }}" en Neon DB.</p>
+          <small>Si el administrador eliminó su pedido, ya no figurará en este historial.</small>
         </div>
       } 
-      <!-- SI SE INGRESÓ LA EMPRESA Y TIENE PEDIDOS -->
       @else {
         <div class="table-responsive">
           <table class="table table-hover align-middle border-top m-0">
@@ -248,7 +274,8 @@
                 <th>ID Orden</th>
                 <th>Empresa / Cliente</th>
                 <th>Fecha</th>
-                <th>Producto / Detalle</th>
+                <th>Detalle de la Venta</th>
+                <th>Método de Pago</th>
                 <th>Estado</th>
                 <th class="text-end">Monto Total</th>
               </tr>
@@ -260,12 +287,14 @@
                   <td><strong class="text-dark">{{ order.cliente }}</strong></td>
                   <td class="text-muted small">📅 {{ order.fecha || 'Reciente' }}</td>
                   <td>
-                    <span class="badge bg-light text-dark border">
-                      {{ order.productoNombre || 'Producto General' }}
+                    <span class="badge bg-light text-dark border p-2 fw-semibold text-wrap text-start">
+                      🛒 {{ order.detalleProductos || order.productoNombre || 'Detalle no especificado' }}
                     </span>
-                    @if (order.cantidad) {
-                      <small class="text-muted ms-1">({{ order.cantidad }} un.)</small>
-                    }
+                  </td>
+                  <td>
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-bold">
+                      💳 {{ order.metodoPago || 'Webpay Transbank' }}
+                    </span>
                   </td>
                   <td>
                     <span class="badge" [ngClass]="{

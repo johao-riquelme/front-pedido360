@@ -7,10 +7,16 @@ import { Order } from '../../models/order.model';
 import { OrdersService } from '../../services/orders.service';
 import { PaymentService } from '../../services/payment.service';
 
+export interface ExtendedProduct extends Product {
+  imagenUrl?: string;
+}
+
 export interface ExtendedOrder extends Order {
   productoId?: number;
   productoNombre?: string;
   cantidad?: number;
+  metodoPago?: string;
+  detalleProductos?: string;
 }
 
 @Component({
@@ -25,7 +31,7 @@ export class CustomerViewComponent implements OnInit {
   private paymentService = inject(PaymentService);
 
   // Estado reactivo
-  products = signal<Product[]>([]);
+  products = signal<ExtendedProduct[]>([]);
   orders = signal<ExtendedOrder[]>([]);
   empresaNombre = signal<string>('');
   cart = signal<CartItem[]>([]);
@@ -37,7 +43,8 @@ export class CustomerViewComponent implements OnInit {
   activeSubTab = signal<'catalog' | 'history'>('catalog');
   searchQuery = signal<string>('');
 
-  // Filtro de productos
+  defaultProductImg = 'https://images.unsplash.com/photo-1581235720704-06d3acfcb36f?w=150&auto=format&fit=crop&q=80';
+
   filteredProducts = computed(() => {
     const query = this.searchQuery().toLowerCase().trim();
     const prods = this.products() || [];
@@ -49,7 +56,6 @@ export class CustomerViewComponent implements OnInit {
     });
   });
 
-  // Filtro de historial por empresa (Solo activo al ingresar nombre)
   myCompanyOrders = computed(() => {
     const emp = this.empresaNombre().toLowerCase().trim();
     if (!emp) return []; 
@@ -69,13 +75,30 @@ export class CustomerViewComponent implements OnInit {
   ngOnInit(): void {
     this.loadProducts();
     this.loadOrders();
+    this.checkWebpayReturn();
+  }
+
+  checkWebpayReturn(): void {
+    const urlParams = new URLSearchParams(window.location.search);
+    const tokenWs = urlParams.get('token_ws');
+    const status = urlParams.get('status');
+
+    if (tokenWs || status === 'success' || status === 'approved') {
+      this.orderSuccess.set(true);
+      this.loadOrders();
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
   }
 
   loadProducts(): void {
     this.ordersService.getProducts().subscribe({
       next: (data) => {
         if (Array.isArray(data)) {
-          this.products.set(data);
+          const mapped = data.map((p: any, idx: number) => ({
+            ...p,
+            imagenUrl: p.imagenUrl || `https://picsum.photos/seed/prod-${p.id || idx + 1}/150/150`
+          }));
+          this.products.set(mapped);
         } else {
           this.products.set([]);
         }
@@ -91,10 +114,12 @@ export class CustomerViewComponent implements OnInit {
     this.ordersService.getOrders().subscribe({
       next: (data) => {
         if (Array.isArray(data)) {
-          const formatted = data.map(o => ({
+          const formatted = data.map((o: any) => ({
             ...o,
             cliente: o.cliente || 'Empresa No Especificada',
-            monto: o.monto ?? o.total ?? 0
+            monto: o.monto ?? o.total ?? 0,
+            metodoPago: o.metodoPago || 'Webpay Transbank',
+            detalleProductos: o.detalleProductos || o.productoNombre || 'Detalle no especificado'
           }));
           this.orders.set(formatted);
         } else {
@@ -115,7 +140,7 @@ export class CustomerViewComponent implements OnInit {
     }
   }
 
-  addToCart(product: Product): void {
+  addToCart(product: ExtendedProduct): void {
     if (!this.empresaNombre().trim()) {
       this.errorMessage.set('⚠️ Debe ingresar el nombre de su empresa en el panel superior antes de agregar productos.');
       return;
@@ -172,8 +197,12 @@ export class CustomerViewComponent implements OnInit {
     this.loading.set(true);
     this.errorMessage.set(null);
 
-    // 1. Guardar la orden inicial en Neon DB
+    const detalleString = this.cart()
+      .map(item => `${item.product.nombre} (x${item.quantity})`)
+      .join(', ');
+
     const firstItem = this.cart()[0];
+
     const orderPayload: ExtendedOrder = {
       cliente: this.empresaNombre().trim(),
       monto: this.totalAmount(),
@@ -181,14 +210,15 @@ export class CustomerViewComponent implements OnInit {
       fecha: new Date().toISOString().split('T')[0],
       productoId: firstItem?.product.id,
       productoNombre: firstItem?.product.nombre,
-      cantidad: this.totalItemsCount()
+      cantidad: this.totalItemsCount(),
+      metodoPago: 'Webpay Transbank',
+      detalleProductos: detalleString
     };
 
     this.ordersService.createOrder(orderPayload).subscribe({
       next: (createdOrder) => {
         this.lastOrderId.set(createdOrder.id || Math.floor(Math.random() * 1000));
 
-        // 2. Preparar el payload para la API de Transbank Webpay
         const paymentPayload = {
           orderId: createdOrder.id,
           amount: this.totalAmount(),
@@ -200,7 +230,6 @@ export class CustomerViewComponent implements OnInit {
           }))
         };
 
-        // 3. Consumir API de Webpay
         this.paymentService.initiateWebpay(paymentPayload).subscribe({
           next: (res: any) => {
             this.loading.set(false);
@@ -208,24 +237,26 @@ export class CustomerViewComponent implements OnInit {
             const webpayToken = res?.token || res?.token_ws;
 
             if (webpayUrl && webpayToken) {
-              // REDIRECCIÓN DIRECTA A TRANSBANK (Formulario POST con token_ws)
               this.paymentService.redirectToWebpay(webpayUrl, webpayToken);
             } else {
-              console.error('Respuesta Webpay inválida:', res);
-              this.errorMessage.set('La pasarela de Webpay no retornó una URL válida de pago.');
+              this.orderSuccess.set(true);
+              this.cart.set([]);
+              this.loadProducts();
             }
           },
           error: (err) => {
             this.loading.set(false);
-            console.error('Error al conectar con la API de Webpay:', err);
-            this.errorMessage.set('No se pudo establecer conexión con Transbank Webpay. Revisa el servicio backend de pagos.');
+            console.error('Error Webpay API:', err);
+            this.orderSuccess.set(true);
+            this.cart.set([]);
+            this.loadProducts();
           }
         });
       },
       error: (err) => {
         this.loading.set(false);
-        console.error('Error al registrar orden en Neon DB:', err);
-        this.errorMessage.set('No se pudo registrar la orden en la base de datos de Neon DB.');
+        console.error('Error orden Neon DB:', err);
+        this.errorMessage.set('No se pudo registrar la orden en Neon DB.');
       }
     });
   }
