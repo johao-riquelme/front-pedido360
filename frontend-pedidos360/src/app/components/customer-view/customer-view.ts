@@ -1,4 +1,6 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
+import { interval, Subscription } from 'rxjs';
+import { take } from 'rxjs/operators';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Product } from '../../models/product.model';
@@ -31,7 +33,7 @@ export interface ExtendedOrder extends Order {
   templateUrl: './customer-view.html',
   styleUrl: './customer-view.css'
 })
-export class CustomerViewComponent implements OnInit {
+export class CustomerViewComponent implements OnInit, OnDestroy {
   private ordersService = inject(OrdersService);
   private paymentService = inject(PaymentService);
 
@@ -40,6 +42,7 @@ export class CustomerViewComponent implements OnInit {
   private readonly empresaStorageKey = 'pedidos360_empresa_activa';
   private readonly cartStorageKey = 'pedidos360_carrito_en_proceso';
   private readonly pendingOrderStorageKey = 'pedidos360_orden_webpay_pendiente';
+  private pendingCheckSubscription?: Subscription;
 
   products = signal<ExtendedProduct[]>([]);
   orders = signal<ExtendedOrder[]>([]);
@@ -153,6 +156,37 @@ export class CustomerViewComponent implements OnInit {
     this.loadProducts();
     this.checkWebpayReturn();
     this.loadOrders();
+
+    // Reintentar una cantidad limitada de veces mientras RabbitMQ actualiza el pedido.
+    // La comprobación usa datos del backend; NO interpreta la URL como prueba de pago.
+    if (this.paymentPending()) {
+      this.startPendingOrderPolling();
+    }
+  }
+
+  ngOnDestroy(): void {
+    this.pendingCheckSubscription?.unsubscribe();
+  }
+
+  private startPendingOrderPolling(): void {
+    if (this.pendingCheckSubscription || !this.paymentPending()) return;
+
+    this.pendingCheckSubscription = interval(2500).pipe(take(8)).subscribe({
+      next: () => {
+        if (this.paymentPending()) {
+          this.loadOrders();
+        } else {
+          this.pendingCheckSubscription?.unsubscribe();
+          this.pendingCheckSubscription = undefined;
+        }
+      },
+      complete: () => {
+        this.pendingCheckSubscription = undefined;
+        if (this.paymentPending()) {
+          this.paymentNotice.set('El pedido aún no figura como PAGADO. Tu carrito está protegido. Puedes usar «Sincronizar DB» para volver a consultar el servidor.');
+        }
+      }
+    });
   }
 
   private restoreBrowserState(): void {
@@ -190,6 +224,8 @@ export class CustomerViewComponent implements OnInit {
   }
 
   private clearVerifiedPurchase(): void {
+    this.pendingCheckSubscription?.unsubscribe();
+    this.pendingCheckSubscription = undefined;
     this.cart.set([]);
     this.saveCart();
     this.paymentPending.set(false);
@@ -206,19 +242,30 @@ export class CustomerViewComponent implements OnInit {
 
   checkWebpayReturn(): void {
     if (typeof window === 'undefined') return;
+
     const url = new URL(window.location.href);
     const params = url.searchParams;
-    const hasReturn = params.has('token_ws') || params.has('TBK_TOKEN') ||
-      ['success', 'approved', 'failed', 'error'].includes((params.get('status') || '').toLowerCase());
+    // PaymentController redirige con ?payment=success|pending|rejected|aborted|error.
+    // Mantener compatibilidad con retornos anteriores.
+    const payment = (params.get('payment') || '').trim().toLowerCase();
+    const hasReturn = params.has('payment') || params.has('token_ws') ||
+      params.has('TBK_TOKEN') || params.has('status');
     if (!hasReturn) return;
 
     this.paymentReturnDetected.set(true);
     this.activeSubTab.set('history');
-    this.paymentNotice.set('Regresaste de Webpay. Estamos consultando el estado del pedido en el servidor; todavía no se considera pagado.');
 
-    // No se interpreta token_ws ni status del navegador como prueba de pago.
-    // Solo un pedido PAGADO confirmado por la API permite limpiar el carrito.
-    ['token_ws', 'TBK_TOKEN', 'status'].forEach(key => url.searchParams.delete(key));
+    if (payment === 'rejected' || payment === 'aborted' || payment === 'error') {
+      this.paymentNotice.set('Webpay informó que el pago no terminó normalmente. Comprobaremos el pedido en el servidor antes de permitir otro intento.');
+    } else if (payment === 'pending') {
+      this.paymentNotice.set('La transacción requiere verificación. No pagues de nuevo: consultaremos el estado real del pedido.');
+    } else {
+      this.paymentNotice.set('Regresaste de Webpay. Estamos verificando el pedido en Neon; la URL no confirma por sí sola el pago.');
+    }
+
+    // Nunca confiar en los parámetros del navegador como confirmación de pago.
+    // El carrito se limpia ÚNICAMENTE cuando la API devuelve PAGADO para el pedido original.
+    ['payment', 'buyOrder', 'token_ws', 'TBK_TOKEN', 'status'].forEach(key => url.searchParams.delete(key));
     window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
   }
 
@@ -279,7 +326,7 @@ export class CustomerViewComponent implements OnInit {
       return;
     }
     const status = String(order.estado || '').toUpperCase();
-    if (['PAGADO', 'ENTREGADO', 'APROBADO', 'AUTORIZADO'].includes(status)) {
+    if (status === 'PAGADO') {
       this.clearVerifiedPurchase();
     } else if (['CANCELADO', 'RECHAZADO', 'ANULADO'].includes(status)) {
       // El servidor confirmó que NO se pagó: liberar el bloqueo, conservando carrito y empresa.
