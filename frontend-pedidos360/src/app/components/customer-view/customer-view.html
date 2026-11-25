@@ -306,12 +306,12 @@
                     <td><strong class="text-dark">{{ order.cliente }}</strong></td>
                     <td>
                       <span class="badge bg-light text-dark border p-2 fw-semibold rounded-3">
-                        🛒 {{ order.detalleProductos || order.productoNombre }}
+                        🛒 {{ getOrderSummaryLabel(order) }}
                       </span>
                     </td>
                     <td>
                       <span class="badge bg-danger-subtle text-danger border border-danger-subtle fw-bold rounded-3">
-                        💳 {{ order.metodoPago || 'Webpay Transbank' }}
+                        💳 {{ order.metodoPago || 'No registrado' }}
                       </span>
                     </td>
                     <td>

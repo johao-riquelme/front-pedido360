@@ -5,6 +5,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Product } from '../../models/product.model';
 import { Order } from '../../models/order.model';
+import { orderSummary } from '../../utils/order-items.util';
 import { OrdersService } from '../../services/orders.service';
 import { PaymentService } from '../../services/payment.service';
 
@@ -37,11 +38,10 @@ export class CustomerViewComponent implements OnInit, OnDestroy {
   private ordersService = inject(OrdersService);
   private paymentService = inject(PaymentService);
 
-  // Empresa activa: se conserva al terminar la compra y al recargar la página.
-  // IMPORTANTE: para usuarios distintos en un mismo navegador se debe asociar la clave al usuario autenticado.
   private readonly empresaStorageKey = 'pedidos360_empresa_activa';
   private readonly cartStorageKey = 'pedidos360_carrito_en_proceso';
   private readonly pendingOrderStorageKey = 'pedidos360_orden_webpay_pendiente';
+  private readonly orderDetailsCacheKey = 'pedidos360_detalle_ordenes';
   private pendingCheckSubscription?: Subscription;
 
   products = signal<ExtendedProduct[]>([]);
@@ -89,7 +89,7 @@ export class CustomerViewComponent implements OnInit, OnDestroy {
     if (name.includes('silla') || name.includes('chair')) {
       return 'https://images.unsplash.com/photo-1580481072645-022f9a6d1270?w=800&auto=format&fit=crop&q=80';
     }
-    
+
     return 'https://images.unsplash.com/photo-1526738549149-8e07eca6c147?w=800&auto=format&fit=crop&q=80';
   }
 
@@ -137,7 +137,6 @@ export class CustomerViewComponent implements OnInit, OnDestroy {
   myCompanyOrders = computed(() => {
     const empresa = this.empresaNombre().toLocaleLowerCase('es').trim();
     if (!empresa) return [];
-    // El filtrado visual no sustituye el control de acceso del backend.
     return this.orders().filter(order =>
       (order.cliente || '').toLocaleLowerCase('es').trim() === empresa
     );
@@ -157,8 +156,6 @@ export class CustomerViewComponent implements OnInit, OnDestroy {
     this.checkWebpayReturn();
     this.loadOrders();
 
-    // Reintentar una cantidad limitada de veces mientras RabbitMQ actualiza el pedido.
-    // La comprobación usa datos del backend; NO interpreta la URL como prueba de pago.
     if (this.paymentPending()) {
       this.startPendingOrderPolling();
     }
@@ -167,6 +164,40 @@ export class CustomerViewComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.pendingCheckSubscription?.unsubscribe();
   }
+
+  private readOrderDetailsCache(): Record<string, { detalleProductos: string; cantidad: number; productoNombre: string }> {
+    if (typeof window === 'undefined') return {};
+    try {
+      const raw = window.localStorage.getItem(this.orderDetailsCacheKey);
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  }
+
+  private saveOrderDetailToCache(
+    orderId: number | undefined,
+    cliente: string,
+    monto: number,
+    detalleProductos: string,
+    cantidad: number,
+    productoNombre: string
+  ): void {
+    if (typeof window === 'undefined') return;
+    try {
+      const cache = this.readOrderDetailsCache();
+      const entry = { detalleProductos, cantidad, productoNombre };
+      if (orderId != null) {
+        cache[`id:${orderId}`] = entry;
+      }
+      cache[`sig:${cliente.toLowerCase().trim()}:${monto}`] = entry;
+      window.localStorage.setItem(this.orderDetailsCacheKey, JSON.stringify(cache));
+    } catch (err) {
+      console.warn('No fue posible guardar caché de detalle de orden:', err);
+    }
+  }
+
+
 
   private startPendingOrderPolling(): void {
     if (this.pendingCheckSubscription || !this.paymentPending()) return;
@@ -237,7 +268,6 @@ export class CustomerViewComponent implements OnInit, OnDestroy {
       window.sessionStorage.removeItem(this.pendingOrderStorageKey);
     }
     this.loadProducts();
-    // NO borrar empresaNombre: debe permanecer seleccionada.
   }
 
   checkWebpayReturn(): void {
@@ -245,8 +275,6 @@ export class CustomerViewComponent implements OnInit, OnDestroy {
 
     const url = new URL(window.location.href);
     const params = url.searchParams;
-    // PaymentController redirige con ?payment=success|pending|rejected|aborted|error.
-    // Mantener compatibilidad con retornos anteriores.
     const payment = (params.get('payment') || '').trim().toLowerCase();
     const hasReturn = params.has('payment') || params.has('token_ws') ||
       params.has('TBK_TOKEN') || params.has('status');
@@ -263,8 +291,6 @@ export class CustomerViewComponent implements OnInit, OnDestroy {
       this.paymentNotice.set('Regresaste de Webpay. Estamos verificando el pedido en Neon; la URL no confirma por sí sola el pago.');
     }
 
-    // Nunca confiar en los parámetros del navegador como confirmación de pago.
-    // El carrito se limpia ÚNICAMENTE cuando la API devuelve PAGADO para el pedido original.
     ['payment', 'buyOrder', 'token_ws', 'TBK_TOKEN', 'status'].forEach(key => url.searchParams.delete(key));
     window.history.replaceState({}, document.title, url.pathname + url.search + url.hash);
   }
@@ -285,31 +311,42 @@ export class CustomerViewComponent implements OnInit, OnDestroy {
       },
       error: err => {
         console.error('Error productos:', err);
-        this.errorMessage.set('Error al conectar con el catálogo en Neon DB.');
+        if (this.products().length === 0) {
+          this.errorMessage.set('Error al conectar con el catálogo en Neon DB.');
+        }
       }
     });
+  }
+
+  getOrderSummaryLabel(order: ExtendedOrder): string {
+    return orderSummary(order, this.products());
   }
 
   loadOrders(): void {
     this.ordersService.getOrders().subscribe({
       next: data => {
         if (!Array.isArray(data)) {
-          this.orders.set([]);
+          if (this.orders().length === 0) {
+            this.orders.set([]);
+          }
           return;
         }
-        const formatted: ExtendedOrder[] = data.map((o: any) => ({
+
+        const formatted: ExtendedOrder[] = data.map(o => ({
           ...o,
           cliente: o.cliente || 'Empresa No Especificada',
-          monto: o.monto ?? o.total ?? 0,
-          metodoPago: o.metodoPago || 'Webpay Transbank',
-          detalleProductos: o.detalleProductos || o.productoNombre || 'Detalle no especificado'
+          monto: o.monto ?? o.total ?? 0
         }));
+
+        this.errorMessage.set(null);
         this.orders.set(formatted);
         this.verifyPendingOrder(formatted);
       },
       error: err => {
         console.error('Error pedidos:', err);
-        this.errorMessage.set('Error al cargar pedidos desde Neon DB.');
+        if (this.orders().length === 0) {
+          this.errorMessage.set('Error al cargar pedidos desde Neon DB.');
+        }
       }
     });
   }
@@ -329,7 +366,6 @@ export class CustomerViewComponent implements OnInit, OnDestroy {
     if (status === 'PAGADO') {
       this.clearVerifiedPurchase();
     } else if (['CANCELADO', 'RECHAZADO', 'ANULADO'].includes(status)) {
-      // El servidor confirmó que NO se pagó: liberar el bloqueo, conservando carrito y empresa.
       this.paymentPending.set(false);
       this.paymentReturnDetected.set(false);
       if (typeof window !== 'undefined') window.sessionStorage.removeItem(this.pendingOrderStorageKey);
@@ -444,18 +480,32 @@ export class CustomerViewComponent implements OnInit, OnDestroy {
 
     this.loading.set(true);
     this.errorMessage.set(null);
-    const detalleString = this.cart()
-      .map(item => `${item.product.nombre} (x${item.quantity})`).join(', ');
+    const clienteClean = this.empresaNombre().trim();
+    const montoTotal = this.totalAmount();
+    const cantidadTotal = this.totalItemsCount();
+    const detalleString = JSON.stringify(this.cart().map(item => ({
+      productId: item.product.id, nombre: item.product.nombre,
+      quantity: item.quantity, price: item.product.precio
+    })));
     const firstItem = this.cart()[0];
 
+    this.saveOrderDetailToCache(
+      undefined,
+      clienteClean,
+      montoTotal,
+      detalleString,
+      cantidadTotal,
+      firstItem.product.nombre
+    );
+
     const orderPayload: ExtendedOrder = {
-      cliente: this.empresaNombre().trim(),
-      monto: this.totalAmount(),
+      cliente: clienteClean,
+      monto: montoTotal,
       estado: 'CREADO',
       fecha: new Date().toISOString().split('T')[0],
       productoId: firstItem.product.id,
       productoNombre: firstItem.product.nombre,
-      cantidad: this.totalItemsCount(),
+      cantidad: cantidadTotal,
       metodoPago: 'Webpay Transbank',
       detalleProductos: detalleString
     };
@@ -468,10 +518,19 @@ export class CustomerViewComponent implements OnInit, OnDestroy {
           return;
         }
         this.lastOrderId.set(Number(createdOrder.id));
+        this.saveOrderDetailToCache(
+          Number(createdOrder.id),
+          clienteClean,
+          montoTotal,
+          detalleString,
+          cantidadTotal,
+          firstItem.product.nombre
+        );
+
         const paymentPayload = {
           orderId: createdOrder.id,
-          amount: this.totalAmount(),
-          totalAmount: this.totalAmount(),
+          amount: montoTotal,
+          totalAmount: montoTotal,
           items: this.cart().map(item => ({
             productId: item.product.id,
             quantity: item.quantity,
