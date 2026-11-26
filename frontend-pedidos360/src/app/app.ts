@@ -10,6 +10,7 @@ import { ExtendedOrder, OrderItemDetail, OrderStatus } from './models/order.mode
 import { Product } from './models/product.model';
 import { resolveOrderItems, orderSummary } from './utils/order-items.util';
 import { CustomerViewComponent } from './components/customer-view/customer-view';
+import { MessagingDashboardComponent } from './components/messaging-dashboard/messaging-dashboard';
 
 export interface AuditLog {
   id: string;
@@ -23,7 +24,12 @@ export interface AuditLog {
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, FormsModule, CustomerViewComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    CustomerViewComponent,
+    MessagingDashboardComponent
+  ],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
