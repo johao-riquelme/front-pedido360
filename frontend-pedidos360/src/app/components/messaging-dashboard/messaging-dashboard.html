@@ -1,0 +1,53 @@
+<section class="monitor">
+  <header class="monitor-head">
+    <div><h3>Mensajería y streaming de eventos</h3><p>Kafka · RabbitMQ · Auditoría persistente en Neon</p></div>
+    <span class="interval">Auditoría: 5 s · Brokers: 30 s</span>
+  </header>
+  @if (auditError() || brokerError()) {
+    <div class="warning">{{ auditError() || brokerError() }}
+      <button type="button" (click)="autorizar()" [disabled]="authorizing()">Autorizar acceso</button>
+    </div>
+  }
+  @if (audit(); as a) {
+    <div class="stats">
+      <div><small>Eventos persistidos</small><strong>{{ a.resumen.eventos_total }}</strong></div>
+      <div><small>Eventos de pedidos</small><strong>{{ a.resumen.eventos_pedidos }}</strong></div>
+      <div><small>Pagos únicos autorizados</small><strong>{{ a.resumen.pagos_autorizados }}</strong></div>
+      <div><small>Monto autorizado (Kafka)</small><strong>{{ a.resumen.monto_autorizado | currency:'CLP':'symbol':'1.0-0' }}</strong></div>
+    </div>
+    <p class="stamp">Desde la instalación de la auditoría · Consulta: {{ a.consultadoEn | date:'dd/MM/yyyy HH:mm:ss' }}</p>
+  } @else if (!auditError()) { <p>Consultando auditoría…</p> }
+  @if (brokers(); as b) {
+    <div class="broker-grid">
+      <div class="panel"><h4>Apache Kafka</h4>
+        @if (b.kafka.disponible) {
+          <p class="ok">Broker consultado correctamente</p>
+          <div class="facts"><span>Brokers <b>{{ b.kafka.brokers }}</b></span><span>Tópicos de negocio <b>{{ b.kafka.topicos }}</b></span><span>Grupos de negocio <b>{{ b.kafka.grupos }}</b></span><span>LAG total <b>{{ b.kafka.lagTotal ?? 'Sin offset' }}</b></span></div>
+        } @else { <p class="warning">{{ b.kafka.error }}</p> }
+      </div>
+      <div class="panel"><h4>RabbitMQ</h4><p>Colas del broker conectado</p>
+        @for (q of b.rabbit.colas; track q.nombre) {
+          <div class="queue"><strong>{{ q.nombre }}</strong>
+            @if (q.disponible) { <span>Listos: {{ q.pendientes }} · Consumidores: {{ q.consumidores }}</span> }
+            @else { <span class="warning">No disponible</span> }
+          </div>
+        }
+        <small>Listos = mensajes disponibles para entrega; no incluye mensajes sin confirmar.</small>
+      </div>
+    </div>
+    @if (b.kafka.disponible) {
+      <h4>Particiones y offsets de Kafka</h4><div class="scroll"><table><thead><tr><th>Tópico / grupo</th><th>Part.</th><th>Répl.</th><th>Offset actual</th><th>Offset final</th><th>LAG</th></tr></thead><tbody>
+        @for (p of b.kafka.particiones; track p.topico + ':' + p.particion) {
+          <tr><td>{{ p.topico }}<small>{{ p.grupo }} · {{ p.estadoGrupo }}</small></td><td>{{ p.particion }}</td><td>{{ p.replicas }}</td><td>{{ p.offsetActual ?? '—' }}</td><td>{{ p.offsetFinal }}</td><td [class.ok]="p.lag === 0">{{ p.lag ?? '—' }}</td></tr>
+        }
+      </tbody></table></div>
+    }
+    <p class="stamp">Última consulta de brokers: {{ b.consultadoEn | date:'dd/MM/yyyy HH:mm:ss' }}</p>
+  } @else if (!brokerError()) { <p>Consultando brokers…</p> }
+  @if (audit(); as a) {
+    <h4>Eventos Kafka recientes</h4>
+    @for (e of a.eventos; track e.topico + ':' + e.particion + ':' + e.kafka_offset) {
+      <article class="event"><div><strong>Pedido #{{ e.pedido_id }} · {{ e.estado }}</strong><small>{{ e.topico }} · Partición {{ e.particion }} · Offset {{ e.kafka_offset }}</small></div><div class="event-right"><strong>{{ e.monto | currency:'CLP':'symbol':'1.0-0' }}</strong><small>{{ e.procesado_en | date:'dd/MM/yyyy HH:mm:ss' }}</small></div></article>
+    } @empty { <p>No hay eventos persistidos todavía.</p> }
+  }
+</section>
